@@ -24,16 +24,16 @@ function generateShapes(): ShapeConfig[] {
   for (let i = 0; i < 10; i++) {
     shapes.push({
       position: [
-        (Math.random() - 0.5) * 18,
-        (Math.random() - 0.5) * 11,
-        (Math.random() - 0.5) * 10 - 2,
+        (Math.random() - 0.5) * 30,  // was 18
+        (Math.random() - 0.5) * 18,  // was 11
+        (Math.random() - 0.5) * 22 - 4,  // was 10, offset -2 → -4
       ],
       rotationSpeed: [
         (Math.random() - 0.5) * 0.15,
         (Math.random() - 0.5) * 0.15,
         (Math.random() - 0.5) * 0.1,
       ],
-      scale: 0.6 + Math.random() * 1.4,
+      scale: 0.8 + Math.random() * 1.8,  // slightly bigger too, so distant shapes stay visible
       geometry: geometries[i % geometries.length],
       colorT: Math.random(),
     });
@@ -84,6 +84,8 @@ function WireShape({ config }: { config: ShapeConfig }) {
   );
 }
 
+
+
 function Scene() {
   const shapes = useMemo(() => generateShapes(), []);
   return (
@@ -98,7 +100,13 @@ function Scene() {
 export function FloatingShapes() {
   return (
     <section className="relative w-full h-screen bg-black overflow-hidden">
-      <Canvas camera={{ position: [0, 0, 10], fov: 60 }}>
+      {/* Aurora glow layer */}
+      <div className="absolute top-0 left-0 w-full h-[60vh] pointer-events-none z-[1] overflow-hidden">
+        <div className="absolute -top-1/3 left-1/4 w-[60vw] h-[60vw] rounded-full bg-blue-500/30 blur-[120px] animate-aurora-1" />
+        <div className="absolute -top-1/4 right-1/4 w-[50vw] h-[50vw] rounded-full bg-purple-500/30 blur-[120px] animate-aurora-2" />
+      </div>
+
+      <Canvas camera={{ position: [0, 0, 18], fov: 65 }}>
         <Scene />
       </Canvas>
 

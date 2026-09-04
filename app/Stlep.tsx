@@ -20,25 +20,28 @@ function generateShapes(): ShapeConfig[] {
     "dodecahedron",
   ];
   const shapes: ShapeConfig[] = [];
-  
-  for (let i = 0; i < 15; i++) {
+  const totalShapes = 15;
+
+  for (let i = 0; i < totalShapes; i++) {
+    // Distribute shapes across a grid layout so they never overlap or bunch up randomly
+    const col = i % 5; // 5 columns across the screen width
+    const row = Math.floor(i / 5); // 3 rows down the screen height
+
+    // Map grid positions to coordinate ranges with slight controlled variation
+    const x = (col - 2) * 8 + (Math.random() - 0.5) * 3; // Spans across width
+    const y = (row - 1) * 7 + (Math.random() - 0.5) * 3; // Spans across height
+    const z = (Math.random() - 0.5) * 12 - 6;           // Depth variation
+
     shapes.push({
-      position: [
-        // Spread evenly across the width of the screen
-        (Math.random() - 0.5) * 35,      
-        // Spread evenly across the height of the screen
-        (Math.random() - 0.5) * 22,      
-        // Pushed back slightly so they sit nicely behind the text
-        (Math.random() - 0.5) * 20 - 5,  
-      ],
+      position: [x, y, z],
       rotationSpeed: [
         (Math.random() - 0.5) * 0.15,
         (Math.random() - 0.5) * 0.15,
         (Math.random() - 0.5) * 0.1,
       ],
-      scale: 0.8 + Math.random() * 2,
+      scale: 1.0 + Math.random() * 1.5,
       geometry: geometries[i % geometries.length],
-      colorT: Math.random(),
+      colorT: i / totalShapes, // Smoothly distributes color variance across the screen
     });
   }
   return shapes;

@@ -1,38 +1,44 @@
 "use client";
 
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Line } from "@react-three/drei";
 import { useRef, useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 
-const NODE_COUNT = 90;
-const SPHERE_RADIUS = 6.5;
-const CONNECT_DISTANCE = 2.6;
-
-type NodeData = {
-  base: THREE.Vector3;
-  phase: number;
-  speed: number;
+type ShapeConfig = {
+  position: [number, number, number];
+  rotationSpeed: [number, number, number];
+  scale: number;
+  geometry: "icosahedron" | "torus" | "octahedron" | "dodecahedron";
+  colorT: number;
 };
 
-function generateNodes(): NodeData[] {
-  const nodes: NodeData[] = [];
-  for (let i = 0; i < NODE_COUNT; i++) {
-    // Fibonacci sphere distribution — evenly spread, no clumping
-    const y = 1 - (i / (NODE_COUNT - 1)) * 2;
-    const radiusAtY = Math.sqrt(1 - y * y);
-    const theta = ((1 + Math.sqrt(5)) * Math.PI) * i;
-    const x = Math.cos(theta) * radiusAtY;
-    const z = Math.sin(theta) * radiusAtY;
-
-    nodes.push({
-      base: new THREE.Vector3(x, y, z).multiplyScalar(SPHERE_RADIUS),
-      phase: Math.random() * Math.PI * 2,
-      speed: 0.3 + Math.random() * 0.4,
+function generateShapes(): ShapeConfig[] {
+  const geometries: ShapeConfig["geometry"][] = [
+    "icosahedron",
+    "torus",
+    "octahedron",
+    "dodecahedron",
+  ];
+  const shapes: ShapeConfig[] = [];
+  for (let i = 0; i < 10; i++) {
+    shapes.push({
+      position: [
+        (Math.random() - 0.5) * 18,
+        (Math.random() - 0.5) * 11,
+        (Math.random() - 0.5) * 10 - 2,
+      ],
+      rotationSpeed: [
+        (Math.random() - 0.5) * 0.15,
+        (Math.random() - 0.5) * 0.15,
+        (Math.random() - 0.5) * 0.1,
+      ],
+      scale: 0.6 + Math.random() * 1.4,
+      geometry: geometries[i % geometries.length],
+      colorT: Math.random(),
     });
   }
-  return nodes;
+  return shapes;
 }
 
 function lerpColor(t: number) {
@@ -41,111 +47,59 @@ function lerpColor(t: number) {
   return blue.clone().lerp(purple, t);
 }
 
-function Node({ data, index }: { data: NodeData; index: number }) {
+function WireShape({ config }: { config: ShapeConfig }) {
   const meshRef = useRef<THREE.Mesh>(null);
-  const color = lerpColor(index / NODE_COUNT);
+  const floatPhase = useMemo(() => Math.random() * Math.PI * 2, []);
+  const color = lerpColor(config.colorT);
 
   useFrame((state) => {
     if (meshRef.current) {
       const t = state.clock.getElapsedTime();
-      const wobble = 0.15;
-      meshRef.current.position.set(
-        data.base.x + Math.sin(t * data.speed + data.phase) * wobble,
-        data.base.y + Math.cos(t * data.speed * 0.8 + data.phase) * wobble,
-        data.base.z + Math.sin(t * data.speed * 0.6 + data.phase) * wobble
-      );
-      const pulse = 1 + Math.sin(t * 2 + data.phase) * 0.4;
-      meshRef.current.scale.setScalar(pulse);
+      meshRef.current.rotation.x += config.rotationSpeed[0] * 0.01;
+      meshRef.current.rotation.y += config.rotationSpeed[1] * 0.01;
+      meshRef.current.rotation.z += config.rotationSpeed[2] * 0.01;
+      meshRef.current.position.y =
+        config.position[1] + Math.sin(t * 0.3 + floatPhase) * 0.4;
     }
   });
 
+  const geometryEl = (() => {
+    switch (config.geometry) {
+      case "icosahedron":
+        return <icosahedronGeometry args={[1, 0]} />;
+      case "torus":
+        return <torusGeometry args={[1, 0.35, 8, 24]} />;
+      case "octahedron":
+        return <octahedronGeometry args={[1, 0]} />;
+      case "dodecahedron":
+        return <dodecahedronGeometry args={[1, 0]} />;
+    }
+  })();
+
   return (
-    <mesh ref={meshRef} position={data.base}>
-      <sphereGeometry args={[0.09, 12, 12]} />
-      <meshBasicMaterial color={color} toneMapped={false} />
+    <mesh ref={meshRef} position={config.position} scale={config.scale}>
+      {geometryEl}
+      <meshBasicMaterial color={color} wireframe transparent opacity={0.5} />
     </mesh>
   );
 }
 
-function SignalPulse({
-  a,
-  b,
-  color,
-  speed,
-}: {
-  a: THREE.Vector3;
-  b: THREE.Vector3;
-  color: THREE.Color;
-  speed: number;
-}) {
-  const meshRef = useRef<THREE.Mesh>(null);
-
-  useFrame((state) => {
-    if (meshRef.current) {
-      const t = (state.clock.getElapsedTime() * speed) % 1;
-      meshRef.current.position.lerpVectors(a, b, t);
-      const fade = Math.sin(t * Math.PI);
-      (meshRef.current.material as THREE.MeshBasicMaterial).opacity = fade;
-    }
-  });
-
+function Scene() {
+  const shapes = useMemo(() => generateShapes(), []);
   return (
-    <mesh ref={meshRef}>
-      <sphereGeometry args={[0.07, 8, 8]} />
-      <meshBasicMaterial color={color} transparent toneMapped={false} />
-    </mesh>
+    <>
+      {shapes.map((s, i) => (
+        <WireShape key={i} config={s} />
+      ))}
+    </>
   );
 }
 
-function NetworkNodes() {
-  const groupRef = useRef<THREE.Group>(null);
-  const nodes = useMemo(() => generateNodes(), []);
-
-  const connections = useMemo(() => {
-    const lines: { a: THREE.Vector3; b: THREE.Vector3; t: number; speed: number }[] = [];
-    for (let i = 0; i < nodes.length; i++) {
-      for (let j = i + 1; j < nodes.length; j++) {
-        if (nodes[i].base.distanceTo(nodes[j].base) < CONNECT_DISTANCE) {
-          lines.push({
-            a: nodes[i].base,
-            b: nodes[j].base,
-            t: i / nodes.length,
-            speed: 0.15 + Math.random() * 0.35,
-          });
-        }
-      }
-    }
-    return lines;
-  }, [nodes]);
-
-  useFrame((state) => {
-    if (groupRef.current) {
-      groupRef.current.rotation.y = state.clock.getElapsedTime() * 0.06;
-    }
-  });
-
-  return (
-    <group ref={groupRef}>
-      {nodes.map((n, i) => (
-        <Node key={i} data={n} index={i} />
-      ))}
-      {connections.map((c, i) => (
-        <group key={i}>
-          <Line points={[c.a, c.b]} color={lerpColor(c.t)} lineWidth={0.6} transparent opacity={0.15} />
-          <SignalPulse a={c.a} b={c.b} color={lerpColor(c.t)} speed={c.speed} />
-        </group>
-      ))}
-    </group>
-  );
-}
-
-export function NeuralNetwork() {
+export function FloatingShapes() {
   return (
     <section className="relative w-full h-screen bg-black overflow-hidden">
       <Canvas camera={{ position: [0, 0, 10], fov: 60 }}>
-        <ambientLight intensity={0.5} />
-        <NetworkNodes />
-        <OrbitControls enableZoom={false} enablePan={false} autoRotate autoRotateSpeed={0.6} />
+        <Scene />
       </Canvas>
 
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
@@ -153,7 +107,9 @@ export function NeuralNetwork() {
           <span className="bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
             Stlep
           </span>
-          <span className="text-white">, nueva generación de edición de video impulsado por IA</span>
+          <span className="text-white">
+            , nueva generación de edición de video impulsado por IA
+          </span>
         </h1>
       </div>
     </section>
@@ -161,5 +117,5 @@ export function NeuralNetwork() {
 }
 
 export default function Stlep() {
-  return <NeuralNetwork />;
+  return <FloatingShapes />;
 }

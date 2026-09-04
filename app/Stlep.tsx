@@ -1,8 +1,7 @@
 "use client";
 
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useFrame } from "@react-three/fiber";
 import { useRef, useMemo } from "react";
-import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 
 type ShapeConfig = {
@@ -21,19 +20,20 @@ function generateShapes(): ShapeConfig[] {
     "dodecahedron",
   ];
   const shapes: ShapeConfig[] = [];
-  for (let i = 0; i < 10; i++) {
+  // Increased shape count for a denser, more immersive background
+  for (let i = 0; i < 15; i++) {
     shapes.push({
       position: [
-        (Math.random() - 0.5) * 30,  // was 18
-        (Math.random() - 0.5) * 18,  // was 11
-        (Math.random() - 0.5) * 22 - 4,  // was 10, offset -2 → -4
+        (Math.random() - 0.5) * 45,      // Spread wider across the X axis
+        (Math.random() - 0.5) * 25,      // Spread taller across the Y axis
+        (Math.random() - 0.5) * 20 - 8,  // Pushed further back on the Z axis
       ],
       rotationSpeed: [
+        (Math.random() - 0.5) * 0.2,
+        (Math.random() - 0.5) * 0.2,
         (Math.random() - 0.5) * 0.15,
-        (Math.random() - 0.5) * 0.15,
-        (Math.random() - 0.5) * 0.1,
       ],
-      scale: 0.8 + Math.random() * 1.8,  // slightly bigger too, so distant shapes stay visible
+      scale: 0.8 + Math.random() * 2,
       geometry: geometries[i % geometries.length],
       colorT: Math.random(),
     });
@@ -42,8 +42,8 @@ function generateShapes(): ShapeConfig[] {
 }
 
 function lerpColor(t: number) {
-  const blue = new THREE.Color("#3b82f6");
-  const purple = new THREE.Color("#a855f7");
+  const blue = new THREE.Color("#3b82f6"); // Tailwind blue-500
+  const purple = new THREE.Color("#a855f7"); // Tailwind purple-500
   return blue.clone().lerp(purple, t);
 }
 
@@ -58,8 +58,9 @@ function WireShape({ config }: { config: ShapeConfig }) {
       meshRef.current.rotation.x += config.rotationSpeed[0] * 0.01;
       meshRef.current.rotation.y += config.rotationSpeed[1] * 0.01;
       meshRef.current.rotation.z += config.rotationSpeed[2] * 0.01;
+      // Smoother, slightly more pronounced floating animation
       meshRef.current.position.y =
-        config.position[1] + Math.sin(t * 0.3 + floatPhase) * 0.4;
+        config.position[1] + Math.sin(t * 0.5 + floatPhase) * 0.8;
     }
   });
 
@@ -68,7 +69,7 @@ function WireShape({ config }: { config: ShapeConfig }) {
       case "icosahedron":
         return <icosahedronGeometry args={[1, 0]} />;
       case "torus":
-        return <torusGeometry args={[1, 0.35, 8, 24]} />;
+        return <torusGeometry args={[1, 0.3, 16, 32]} />; // Smoother geometry for the torus
       case "octahedron":
         return <octahedronGeometry args={[1, 0]} />;
       case "dodecahedron":
@@ -79,17 +80,24 @@ function WireShape({ config }: { config: ShapeConfig }) {
   return (
     <mesh ref={meshRef} position={config.position} scale={config.scale}>
       {geometryEl}
-      <meshBasicMaterial color={color} wireframe transparent opacity={0.5} />
+      <meshBasicMaterial 
+        color={color} 
+        wireframe 
+        transparent 
+        opacity={0.35} 
+        blending={THREE.AdditiveBlending} // Creates a glowing overlap effect
+        depthWrite={false} // Prevents wireframes from rendering ugly internal clipping
+      />
     </mesh>
   );
 }
-
-
 
 function Scene() {
   const shapes = useMemo(() => generateShapes(), []);
   return (
     <>
+      {/* Fog blends the 3D shapes smoothly into the black background as they get further away */}
+      <fog attach="fog" args={["#000000", 12, 35]} />
       {shapes.map((s, i) => (
         <WireShape key={i} config={s} />
       ))}
@@ -99,26 +107,33 @@ function Scene() {
 
 export function FloatingShapes() {
   return (
-    <section className="relative w-full h-screen bg-black overflow-hidden">
-      {/* Aurora glow layer */}
-      <div className="absolute top-0 left-0 w-full h-[60vh] pointer-events-none z-[1] overflow-hidden">
-        <div className="absolute -top-1/3 left-1/4 w-[60vw] h-[60vw] rounded-full bg-blue-500/30 blur-[120px] animate-aurora-1" />
-        <div className="absolute -top-1/4 right-1/4 w-[50vw] h-[50vw] rounded-full bg-purple-500/30 blur-[120px] animate-aurora-2" />
+    <section className="relative w-full h-screen bg-black overflow-hidden font-sans">
+      {/* Fixed Aurora layer: Full height, mix-blend-screen for better lighting, and moved slightly to corners */}
+      <div className="absolute inset-0 w-full h-full pointer-events-none z-[1]">
+        <div className="absolute -top-[10%] -left-[10%] w-[60vw] h-[60vw] rounded-full bg-blue-600/20 blur-[120px] animate-aurora-1 mix-blend-screen" />
+        <div className="absolute bottom-[0%] -right-[10%] w-[50vw] h-[50vw] rounded-full bg-purple-600/20 blur-[120px] animate-aurora-2 mix-blend-screen" />
       </div>
 
-      <Canvas camera={{ position: [0, 0, 18], fov: 65 }}>
+      <Canvas camera={{ position: [0, 0, 18], fov: 60 }}>
         <Scene />
       </Canvas>
 
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-        <h1 className="font-display text-4xl md:text-6xl font-bold text-center px-6 max-w-4xl leading-tight tracking-tight">
-          <span className="bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
+      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10">
+        {/* Invisible shadow block behind the text ensures perfect readability against the 3D elements */}
+        <div className="absolute w-[80vw] max-w-[800px] h-[300px] bg-black/60 blur-[80px] rounded-full" />
+        
+        <h1 className="relative font-display text-5xl md:text-7xl font-bold text-center px-6 max-w-5xl leading-tight tracking-tight">
+          <span className="bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-500 bg-clip-text text-transparent drop-shadow-sm">
             Stlep
           </span>
-          <span className="text-white">
+          <span className="text-white drop-shadow-md">
             , nueva generación de edición de video impulsado por IA
           </span>
         </h1>
+        {/* Added a subtle sub-headline for better landing page structure */}
+        <p className="relative mt-6 text-gray-400 text-lg md:text-xl max-w-2xl text-center font-medium drop-shadow-md">
+          Potencia tu flujo de trabajo con herramientas de renderizado inteligentes.
+        </p>
       </div>
     </section>
   );

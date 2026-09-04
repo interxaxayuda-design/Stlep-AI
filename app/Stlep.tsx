@@ -4,7 +4,7 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { useRef, useMemo, useState } from "react";
 import * as THREE from "three";
 
-// Campo de partículas avanzado en perspectiva con iluminación y shaders
+// Campo de partículas con geometría y relieve 3D real
 function StlepParticleField() {
   const pointsRef = useRef<THREE.Points>(null);
   const count = 1000;
@@ -33,10 +33,8 @@ function StlepParticleField() {
     if (pointsRef.current) {
       const t = state.clock.getElapsedTime();
       
-      // Movimiento rotacional fluido de marea
       pointsRef.current.rotation.y = t * 0.025;
 
-      // Interacción sutil con la posición del mouse (Parallax)
       const targetX = (state.pointer.x * Math.PI) / 16;
       const targetY = (state.pointer.y * Math.PI) / 16;
       
@@ -45,6 +43,23 @@ function StlepParticleField() {
     }
   });
 
+  // Generar textura proceduralmente para que cada punto sea una esfera perfecta con volumen (sin bordes cuadrados)
+  const particleTexture = useMemo(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 64;
+    canvas.height = 64;
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+      gradient.addColorStop(0, "rgba(255,255,255,1)");
+      gradient.addColorStop(0.3, "rgba(255,255,255,0.8)");
+      gradient.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, 64, 64);
+    }
+    return new THREE.CanvasTexture(canvas);
+  }, []);
+
   return (
     <points ref={pointsRef}>
       <bufferGeometry>
@@ -52,10 +67,12 @@ function StlepParticleField() {
         <bufferAttribute attach="attributes-color" args={[colors, 3]} />
       </bufferGeometry>
       <pointsMaterial
-        size={0.14}
+        size={0.35}
         vertexColors
         transparent
-        opacity={0.65}
+        opacity={0.8}
+        map={particleTexture}
+        alphaTest={0.01}
         blending={THREE.AdditiveBlending}
         depthWrite={false}
       />
@@ -76,22 +93,21 @@ export function FloatingShapes() {
   return (
     <section className="relative w-full h-screen bg-black overflow-hidden font-sans flex flex-col justify-between select-none">
       
-      {/* Fondo con Iluminación Ambiental Cenital (Mesh Gradient sutil) */}
+      {/* Fondo con Iluminación Ambiental Cenital */}
       <div className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-hidden">
         <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[60vw] h-[40vw] rounded-full bg-blue-600/15 blur-[150px]" />
         <div className="absolute top-[10%] left-1/2 -translate-x-1/2 w-[40vw] h-[30vw] rounded-full bg-purple-600/15 blur-[140px]" />
       </div>
 
-      {/* Canvas 3D de Partículas */}
+      {/* Canvas 3D de Partículas 3D Esféricas */}
       <div className="absolute inset-0 w-full h-full pointer-events-none z-[1]">
         <Canvas camera={{ position: [0, 0, 14], fov: 60 }}>
           <StlepParticleField />
         </Canvas>
       </div>
 
-      {/* Header Superior Original de Stlep: Avatar a la izquierda e Inicio de sesión a la derecha */}
+      {/* Header Superior Original de Stlep */}
       <div className="w-full p-6 md:p-10 flex justify-between items-center z-20 animate-fade-in-up">
-        {/* Avatar de Usuario */}
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 rounded-full bg-white/5 border border-white/10 backdrop-blur-xl flex items-center justify-center overflow-hidden shadow-2xl transition-transform hover:scale-105">
             {user ? (
@@ -109,7 +125,6 @@ export function FloatingShapes() {
           )}
         </div>
 
-        {/* Botón de Iniciar sesión con Google original */}
         {!user && (
           <button 
             onClick={handleLogin}
@@ -126,7 +141,7 @@ export function FloatingShapes() {
         )}
       </div>
 
-      {/* Contenido Central Original de Stlep */}
+      {/* Contenido Central Original */}
       <div className="flex-1 flex flex-col items-center justify-center z-10 px-6 -mt-10 pointer-events-none">
         <h1 className="relative font-display text-5xl md:text-7xl font-bold text-center max-w-5xl leading-tight tracking-tight animate-fade-in-up opacity-0 fill-mode-forwards delay-100">
           <span className="bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">
@@ -142,7 +157,7 @@ export function FloatingShapes() {
         </p>
       </div>
 
-      {/* Footer minimalista de relleno */}
+      {/* Footer minimalista */}
       <div className="w-full p-6 text-center z-10">
         <span className="text-xs text-zinc-600 tracking-wider uppercase">Stlep Intelligence © 2026</span>
       </div>

@@ -15,8 +15,8 @@ function generateNodes() {
     nodes.push(
       new THREE.Vector3(
         (Math.random() - 0.5) * 16,
-        (Math.random() - 0.5) * 10,
-        (Math.random() - 0.5) * 12
+        (Math.random() - 0.5) * 5,
+        (Math.random() - 0.5) * 5
       )
     );
   }

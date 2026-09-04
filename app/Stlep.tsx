@@ -28,9 +28,9 @@ function generateShapes(): ShapeConfig[] {
         (Math.random() - 0.5) * 20 - 8,
       ],
       rotationSpeed: [
-        (Math.random() - 0.5) * 0.2,
-        (Math.random() - 0.5) * 0.2,
-        (Math.random() - 0.5) * 0.15,
+        (Math.random() - 0.5) * 0.15, // Reverted to 0.15
+        (Math.random() - 0.5) * 0.15, // Reverted to 0.15
+        (Math.random() - 0.5) * 0.1,  // Reverted to 0.1
       ],
       scale: 0.8 + Math.random() * 2,
       geometry: geometries[i % geometries.length],
@@ -58,10 +58,10 @@ function WireShape({ config }: { config: ShapeConfig }) {
     if (meshRef.current) {
       const t = state.clock.getElapsedTime();
       
-      // Continuous rotation
-      meshRef.current.rotation.x += config.rotationSpeed[0] * delta * 60;
-      meshRef.current.rotation.y += config.rotationSpeed[1] * delta * 60;
-      meshRef.current.rotation.z += config.rotationSpeed[2] * delta * 60;
+      // Fixed: Slowed down to match your original exact speed
+      meshRef.current.rotation.x += config.rotationSpeed[0] * delta * 0.6;
+      meshRef.current.rotation.y += config.rotationSpeed[1] * delta * 0.6;
+      meshRef.current.rotation.z += config.rotationSpeed[2] * delta * 0.6;
       
       // Continuous floating
       meshRef.current.position.y =

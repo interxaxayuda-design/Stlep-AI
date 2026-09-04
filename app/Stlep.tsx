@@ -4,10 +4,10 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { useRef, useMemo, useState } from "react";
 import * as THREE from "three";
 
-// Campo de partículas en perspectiva profunda (Estilo la referencia)
-function DeepParticleField() {
+// Campo de partículas avanzado en perspectiva con iluminación y shaders
+function StlepParticleField() {
   const pointsRef = useRef<THREE.Points>(null);
-  const count = 1200; // Gran densidad de partículas para el efecto inmersivo
+  const count = 1000;
 
   const [positions, colors] = useMemo(() => {
     const pos = new Float32Array(count * 3);
@@ -17,10 +17,9 @@ function DeepParticleField() {
     const colorPurple = new THREE.Color("#a855f7");
 
     for (let i = 0; i < count; i++) {
-      // Distribuir en un plano amplio con profundidad
-      pos[i * 3] = (Math.random() - 0.5) * 60;
-      pos[i * 3 + 1] = (Math.random() - 0.5) * 20 - 2; // Más concentrado hacia abajo/medio
-      pos[i * 3 + 2] = (Math.random() - 0.5) * 40 - 10;
+      pos[i * 3] = (Math.random() - 0.5) * 50;
+      pos[i * 3 + 1] = (Math.random() - 0.5) * 20 - 1;
+      pos[i * 3 + 2] = (Math.random() - 0.5) * 30 - 5;
 
       const mixedColor = colorBlue.clone().lerp(colorPurple, Math.random());
       col[i * 3] = mixedColor.r;
@@ -34,14 +33,14 @@ function DeepParticleField() {
     if (pointsRef.current) {
       const t = state.clock.getElapsedTime();
       
-      // Movimiento orgánico muy suave de marea / flotación
-      pointsRef.current.rotation.y = t * 0.02;
+      // Movimiento rotacional fluido de marea
+      pointsRef.current.rotation.y = t * 0.025;
+
+      // Interacción sutil con la posición del mouse (Parallax)
+      const targetX = (state.pointer.x * Math.PI) / 16;
+      const targetY = (state.pointer.y * Math.PI) / 16;
       
-      // Reacción sutil al movimiento del mouse (Parallax)
-      const targetX = (state.pointer.x * Math.PI) / 20;
-      const targetY = (state.pointer.y * Math.PI) / 20;
-      
-      pointsRef.current.rotation.y = THREE.MathUtils.damp(pointsRef.current.rotation.y, targetX + t * 0.02, 3, delta);
+      pointsRef.current.rotation.y = THREE.MathUtils.damp(pointsRef.current.rotation.y, targetX + t * 0.025, 3, delta);
       pointsRef.current.rotation.x = THREE.MathUtils.damp(pointsRef.current.rotation.x, -targetY, 3, delta);
     }
   });
@@ -53,10 +52,10 @@ function DeepParticleField() {
         <bufferAttribute attach="attributes-color" args={[colors, 3]} />
       </bufferGeometry>
       <pointsMaterial
-        size={0.15}
+        size={0.14}
         vertexColors
         transparent
-        opacity={0.7}
+        opacity={0.65}
         blending={THREE.AdditiveBlending}
         depthWrite={false}
       />
@@ -64,7 +63,7 @@ function DeepParticleField() {
   );
 }
 
-export function StlepAdvancedHero() {
+export function FloatingShapes() {
   const [user, setUser] = useState<{ name: string; avatar: string } | null>(null);
 
   const handleLogin = () => {
@@ -75,115 +74,82 @@ export function StlepAdvancedHero() {
   };
 
   return (
-    <section className="relative w-full h-screen bg-[#030308] overflow-hidden font-sans flex flex-col justify-between select-none">
+    <section className="relative w-full h-screen bg-black overflow-hidden font-sans flex flex-col justify-between select-none">
       
-      {/* Iluminación Ambiental de Fondo (Mesh Gradient cenital estilo referencia) */}
+      {/* Fondo con Iluminación Ambiental Cenital (Mesh Gradient sutil) */}
       <div className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-hidden">
-        <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[70vw] h-[40vw] rounded-full bg-blue-600/10 blur-[160px]" />
-        <div className="absolute top-[20%] left-1/2 -translate-x-1/2 w-[50vw] h-[30vw] rounded-full bg-purple-600/10 blur-[140px]" />
+        <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[60vw] h-[40vw] rounded-full bg-blue-600/15 blur-[150px]" />
+        <div className="absolute top-[10%] left-1/2 -translate-x-1/2 w-[40vw] h-[30vw] rounded-full bg-purple-600/15 blur-[140px]" />
       </div>
 
-      {/* Canvas 3D de Partículas en Perspectiva */}
+      {/* Canvas 3D de Partículas */}
       <div className="absolute inset-0 w-full h-full pointer-events-none z-[1]">
-        <Canvas camera={{ position: [0, 2, 12], fov: 60 }}>
-          <DeepParticleField />
+        <Canvas camera={{ position: [0, 0, 14], fov: 60 }}>
+          <StlepParticleField />
         </Canvas>
       </div>
 
-      {/* Navbar Superior Completo (Estilo Pro) */}
-      <nav className="w-full px-8 py-5 flex justify-between items-center z-30 border-b border-white/5 backdrop-blur-md bg-black/20">
-        <div className="flex items-center gap-8">
-          <div className="flex items-center gap-2 cursor-pointer">
-            <span className="font-bold text-xl tracking-wider text-white">STLEP</span>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">AI</span>
+      {/* Header Superior Original de Stlep: Avatar a la izquierda e Inicio de sesión a la derecha */}
+      <div className="w-full p-6 md:p-10 flex justify-between items-center z-20 animate-fade-in-up">
+        {/* Avatar de Usuario */}
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-full bg-white/5 border border-white/10 backdrop-blur-xl flex items-center justify-center overflow-hidden shadow-2xl transition-transform hover:scale-105">
+            {user ? (
+              <img src={user.avatar} alt="Perfil" className="w-full h-full object-cover" />
+            ) : (
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            )}
           </div>
-          <div className="hidden md:flex items-center gap-6 text-sm text-gray-400 font-medium">
-            <a href="#inicio" className="text-white transition-colors">Inicio</a>
-            <a href="#servicios" className="hover:text-white transition-colors">Servicios</a>
-            <a href="#portafolio" className="hover:text-white transition-colors">Portafolio</a>
-            <a href="#blog" className="hover:text-white transition-colors">Blog</a>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          {/* Avatar / Usuario */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 backdrop-blur-xl flex items-center justify-center overflow-hidden shadow-lg transition-transform hover:scale-105">
-              {user ? (
-                <img src={user.avatar} alt="Perfil" className="w-full h-full object-cover" />
-              ) : (
-                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-              )}
-            </div>
-            {user && <span className="text-gray-200 text-sm font-medium hidden sm:inline-block">{user.name}</span>}
-          </div>
-
-          {!user && (
-            <button 
-              onClick={handleLogin}
-              className="bg-white/10 hover:bg-white/20 text-white border border-white/10 text-sm font-medium px-4 py-2 rounded-full backdrop-blur-md transition-all duration-300 cursor-pointer"
-            >
-              Iniciar Sesión
-            </button>
+          {user && (
+            <span className="text-gray-200 text-sm font-medium hidden sm:inline-block tracking-wide">
+              {user.name}
+            </span>
           )}
-
-          <a 
-            href="#consultoria"
-            className="hidden sm:flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-sm font-medium px-5 py-2 rounded-full shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-all duration-300"
-          >
-            <span>Agendar Consultoría</span>
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-            </svg>
-          </a>
         </div>
-      </nav>
 
-      {/* Contenido Central (Hero) */}
-      <div className="flex-1 flex flex-col items-center justify-center z-20 px-6 text-center max-w-5xl mx-auto pointer-events-none">
-        <h1 className="font-display text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight leading-[1.1] animate-fade-in-up">
-          <span className="text-white">Edición Web & </span>
-          <span className="bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent drop-shadow-[0_0_35px_rgba(168,85,247,0.3)]">
-            Video Inteligente
+        {/* Botón de Iniciar sesión con Google original */}
+        {!user && (
+          <button 
+            onClick={handleLogin}
+            className="flex items-center gap-3 bg-white text-black font-medium text-sm px-5 py-2.5 rounded-full shadow-[0_4px_20px_rgba(255,255,255,0.1)] hover:bg-gray-100 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 cursor-pointer"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
+              <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.19v3.15C3.17 21.3 7.25 24 12 24z"/>
+              <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.19C.43 8.1 0 9.8 0 12s.43 3.9 1.19 5.42l4.09-3.15z"/>
+              <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.25 0 3.17 2.7 1.19 6.58l4.09 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+            </svg>
+            <span>Iniciar sesión con Google</span>
+          </button>
+        )}
+      </div>
+
+      {/* Contenido Central Original de Stlep */}
+      <div className="flex-1 flex flex-col items-center justify-center z-10 px-6 -mt-10 pointer-events-none">
+        <h1 className="relative font-display text-5xl md:text-7xl font-bold text-center max-w-5xl leading-tight tracking-tight animate-fade-in-up opacity-0 fill-mode-forwards delay-100">
+          <span className="bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">
+            Stlep
+          </span>
+          <span className="text-white">
+            , nueva generación de edición de video impulsado por IA
           </span>
         </h1>
         
-        <p className="mt-6 text-gray-400 text-base sm:text-lg md:text-xl max-w-2xl font-normal leading-relaxed">
-          Transformamos flujos de trabajo creativos en sistemas automatizados de alto impacto impulsados por inteligencia artificial de nueva generación.
+        <p className="relative mt-6 text-gray-400 text-lg md:text-xl max-w-2xl text-center font-normal tracking-wide animate-fade-in-up opacity-0 fill-mode-forwards delay-300">
+          Potencia tu flujo de trabajo con herramientas de renderizado inteligentes.
         </p>
-
-        {/* Botones de Acción Principal */}
-        <div className="mt-8 pointer-events-auto flex flex-wrap items-center justify-center gap-4">
-          <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-medium px-7 py-3.5 rounded-full shadow-[0_0_30px_rgba(37,99,235,0.4)] hover:scale-105 transition-all duration-300 cursor-pointer">
-            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-            <span>Ver Soluciones</span>
-          </button>
-          
-          <a href="#contacto" className="flex items-center gap-2 bg-white/5 hover:bg-white/10 text-gray-200 border border-white/10 font-medium px-7 py-3.5 rounded-full backdrop-blur-md hover:scale-105 transition-all duration-300">
-            <span>Agendar llamada</span>
-            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-            </svg>
-          </a>
-        </div>
       </div>
 
-      {/* Footer Minimalista Inferior */}
-      <footer className="w-full p-6 flex justify-between items-center text-xs text-zinc-500 z-20 border-t border-white/5 bg-black/40 backdrop-blur-md">
-        <span>Stlep Intelligence © 2026. Todos los derechos reservados.</span>
-        <div className="flex gap-4">
-          <span className="hover:text-gray-300 cursor-pointer">Política de Privacidad</span>
-          <span className="hover:text-gray-300 cursor-pointer">Términos de Uso</span>
-        </div>
-      </footer>
+      {/* Footer minimalista de relleno */}
+      <div className="w-full p-6 text-center z-10">
+        <span className="text-xs text-zinc-600 tracking-wider uppercase">Stlep Intelligence © 2026</span>
+      </div>
     </section>
   );
 }
 
 export default function Stlep() {
-  return <StlepAdvancedHero />;
+  return <FloatingShapes />;
 }

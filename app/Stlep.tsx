@@ -1,49 +1,42 @@
 "use client";
 
 import { Canvas, useFrame } from "@react-three/fiber";
-import { useRef, useState } from "react";
+import { useRef, useMemo, useState } from "react";
 import * as THREE from "three";
 
-function EnergyCoreScene() {
-  const coreRef = useRef<THREE.Group>(null);
-  const ring1Ref = useRef<THREE.Mesh>(null);
-  const ring2Ref = useRef<THREE.Mesh>(null);
+function NeuralNetworkScene() {
+  const groupRef = useRef<THREE.Group>(null);
+  const count = 50;
+
+  const particles = useMemo(() => {
+    const temp = [];
+    for (let i = 0; i < count; i++) {
+      const x = (Math.random() - 0.5) * 12;
+      const y = (Math.random() - 0.5) * 8;
+      const z = (Math.random() - 0.5) * 6;
+      temp.push(new THREE.Vector3(x, y, z));
+    }
+    return temp;
+  }, []);
 
   useFrame((state, delta) => {
-    const t = state.clock.getElapsedTime();
-    if (coreRef.current) {
-      const targetX = (state.pointer.x * Math.PI) / 6;
-      const targetY = (state.pointer.y * Math.PI) / 6;
-      coreRef.current.rotation.y = THREE.MathUtils.damp(coreRef.current.rotation.y, targetX + t * 0.2, 3, delta);
-      coreRef.current.rotation.x = THREE.MathUtils.damp(coreRef.current.rotation.x, -targetY, 3, delta);
-    }
-    if (ring1Ref.current && ring2Ref.current) {
-      ring1Ref.current.rotation.z += delta * 0.5;
-      ring2Ref.current.rotation.x += delta * 0.3;
+    if (groupRef.current) {
+      const t = state.clock.getElapsedTime();
+      const targetX = (state.pointer.x * Math.PI) / 8;
+      const targetY = (state.pointer.y * Math.PI) / 8;
+      groupRef.current.rotation.y = THREE.MathUtils.damp(groupRef.current.rotation.y, targetX + t * 0.05, 3, delta);
+      groupRef.current.rotation.x = THREE.MathUtils.damp(groupRef.current.rotation.x, -targetY, 3, delta);
     }
   });
 
   return (
-    <group ref={coreRef}>
-      <mesh>
-        <sphereGeometry args={[2, 32, 32]} />
-        <meshStandardMaterial 
-          color="#8b5cf6" 
-          emissive="#3b82f6" 
-          emissiveIntensity={0.6} 
-          roughness={0.2} 
-          metalness={0.8}
-          wireframe
-        />
-      </mesh>
-      <mesh ref={ring1Ref}>
-        <torusGeometry args={[3.2, 0.05, 16, 100]} />
-        <meshBasicMaterial color="#60a5fa" transparent opacity={0.7} />
-      </mesh>
-      <mesh ref={ring2Ref} rotation={[Math.PI / 3, 0, 0]}>
-        <torusGeometry args={[4.0, 0.03, 16, 100]} />
-        <meshBasicMaterial color="#c084fc" transparent opacity={0.5} />
-      </mesh>
+    <group ref={groupRef}>
+      {particles.map((pos, idx) => (
+        <mesh key={idx} position={pos}>
+          <sphereGeometry args={[0.08, 16, 16]} />
+          <meshBasicMaterial color={idx % 2 === 0 ? "#3b82f6" : "#a855f7"} />
+        </mesh>
+      ))}
     </group>
   );
 }
@@ -60,12 +53,10 @@ export function FloatingShapes() {
 
   return (
     <section className="relative w-full h-screen bg-black overflow-hidden font-sans flex flex-col justify-between">
-      {/* Canvas 3D de Fondo con el Núcleo Energético */}
+      {/* Canvas 3D de Fondo con la Red Neuronal */}
       <div className="absolute inset-0 w-full h-full pointer-events-auto z-0">
-        <Canvas camera={{ position: [0, 0, 10], fov: 50 }}>
-          <ambientLight intensity={1} />
-          <pointLight position={[10, 10, 10]} intensity={2} />
-          <EnergyCoreScene />
+        <Canvas camera={{ position: [0, 0, 10], fov: 60 }}>
+          <NeuralNetworkScene />
         </Canvas>
       </div>
 

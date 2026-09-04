@@ -1,6 +1,52 @@
 "use client";
 
-import { useState } from "react";
+import { Canvas, useFrame } from "@react-three/fiber";
+import { useRef, useState } from "react";
+import * as THREE from "three";
+
+function EnergyCoreScene() {
+  const coreRef = useRef<THREE.Group>(null);
+  const ring1Ref = useRef<THREE.Mesh>(null);
+  const ring2Ref = useRef<THREE.Mesh>(null);
+
+  useFrame((state, delta) => {
+    const t = state.clock.getElapsedTime();
+    if (coreRef.current) {
+      const targetX = (state.pointer.x * Math.PI) / 6;
+      const targetY = (state.pointer.y * Math.PI) / 6;
+      coreRef.current.rotation.y = THREE.MathUtils.damp(coreRef.current.rotation.y, targetX + t * 0.2, 3, delta);
+      coreRef.current.rotation.x = THREE.MathUtils.damp(coreRef.current.rotation.x, -targetY, 3, delta);
+    }
+    if (ring1Ref.current && ring2Ref.current) {
+      ring1Ref.current.rotation.z += delta * 0.5;
+      ring2Ref.current.rotation.x += delta * 0.3;
+    }
+  });
+
+  return (
+    <group ref={coreRef}>
+      <mesh>
+        <sphereGeometry args={[2, 32, 32]} />
+        <meshStandardMaterial 
+          color="#8b5cf6" 
+          emissive="#3b82f6" 
+          emissiveIntensity={0.6} 
+          roughness={0.2} 
+          metalness={0.8}
+          wireframe
+        />
+      </mesh>
+      <mesh ref={ring1Ref}>
+        <torusGeometry args={[3.2, 0.05, 16, 100]} />
+        <meshBasicMaterial color="#60a5fa" transparent opacity={0.7} />
+      </mesh>
+      <mesh ref={ring2Ref} rotation={[Math.PI / 3, 0, 0]}>
+        <torusGeometry args={[4.0, 0.03, 16, 100]} />
+        <meshBasicMaterial color="#c084fc" transparent opacity={0.5} />
+      </mesh>
+    </group>
+  );
+}
 
 export function FloatingShapes() {
   const [user, setUser] = useState<{ name: string; avatar: string } | null>(null);
@@ -14,15 +60,17 @@ export function FloatingShapes() {
 
   return (
     <section className="relative w-full h-screen bg-black overflow-hidden font-sans flex flex-col justify-between">
-      {/* Fondo con Malla de Luz Ambiental Sutil y Elegante (Mesh Gradient) */}
-      <div className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-hidden">
-        <div className="absolute top-[-20%] left-[20%] w-[50vw] h-[50vw] rounded-full bg-blue-600/10 blur-[150px]" />
-        <div className="absolute bottom-[-20%] right-[20%] w-[50vw] h-[50vw] rounded-full bg-indigo-600/10 blur-[150px]" />
+      {/* Canvas 3D de Fondo con el Núcleo Energético */}
+      <div className="absolute inset-0 w-full h-full pointer-events-auto z-0">
+        <Canvas camera={{ position: [0, 0, 10], fov: 50 }}>
+          <ambientLight intensity={1} />
+          <pointLight position={[10, 10, 10]} intensity={2} />
+          <EnergyCoreScene />
+        </Canvas>
       </div>
 
       {/* Header Superior: Avatar a la izquierda e Inicio de sesión a la derecha */}
       <div className="w-full p-6 md:p-10 flex justify-between items-center z-20 animate-fade-in-up">
-        {/* Avatar de Usuario */}
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 rounded-full bg-white/5 border border-white/10 backdrop-blur-xl flex items-center justify-center overflow-hidden shadow-2xl transition-transform hover:scale-105">
             {user ? (
@@ -40,7 +88,6 @@ export function FloatingShapes() {
           )}
         </div>
 
-        {/* Botón de Iniciar sesión con Google (Estilo Burbuja Minimalista) */}
         {!user && (
           <button 
             onClick={handleLogin}
@@ -58,7 +105,7 @@ export function FloatingShapes() {
       </div>
 
       {/* Contenido Central */}
-      <div className="flex-1 flex flex-col items-center justify-center z-10 px-6 -mt-10">
+      <div className="flex-1 flex flex-col items-center justify-center z-10 px-6 -mt-10 pointer-events-none">
         <h1 className="relative font-display text-5xl md:text-7xl font-bold text-center max-w-5xl leading-tight tracking-tight animate-fade-in-up opacity-0 fill-mode-forwards delay-100">
           <span className="bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">
             Stlep

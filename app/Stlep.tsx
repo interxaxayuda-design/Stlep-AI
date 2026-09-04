@@ -20,17 +20,21 @@ function generateShapes(): ShapeConfig[] {
     "dodecahedron",
   ];
   const shapes: ShapeConfig[] = [];
+  
   for (let i = 0; i < 15; i++) {
     shapes.push({
       position: [
-        (Math.random() - 0.5) * 45,
-        (Math.random() - 0.5) * 25,
-        (Math.random() - 0.5) * 20 - 8,
+        // Reduced from 45 to 25 to pull them horizontally toward the center
+        (Math.random() - 0.5) * 25,      
+        // Reduced from 25 to 15 to pull them vertically toward the center
+        (Math.random() - 0.5) * 15,      
+        // Adjusted slightly to keep them floating right around the text depth
+        (Math.random() - 0.5) * 15 - 4,  
       ],
       rotationSpeed: [
-        (Math.random() - 0.5) * 0.15, // Reverted to 0.15
-        (Math.random() - 0.5) * 0.15, // Reverted to 0.15
-        (Math.random() - 0.5) * 0.1,  // Reverted to 0.1
+        (Math.random() - 0.5) * 0.15,
+        (Math.random() - 0.5) * 0.15,
+        (Math.random() - 0.5) * 0.1,
       ],
       scale: 0.8 + Math.random() * 2,
       geometry: geometries[i % geometries.length],

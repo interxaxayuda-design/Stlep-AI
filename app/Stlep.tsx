@@ -24,12 +24,12 @@ function generateShapes(): ShapeConfig[] {
   for (let i = 0; i < 15; i++) {
     shapes.push({
       position: [
-        // Reduced from 45 to 25 to pull them horizontally toward the center
-        (Math.random() - 0.5) * 25,      
-        // Reduced from 25 to 15 to pull them vertically toward the center
-        (Math.random() - 0.5) * 15,      
-        // Adjusted slightly to keep them floating right around the text depth
-        (Math.random() - 0.5) * 15 - 4,  
+        // Spread evenly across the width of the screen
+        (Math.random() - 0.5) * 35,      
+        // Spread evenly across the height of the screen
+        (Math.random() - 0.5) * 22,      
+        // Pushed back slightly so they sit nicely behind the text
+        (Math.random() - 0.5) * 20 - 5,  
       ],
       rotationSpeed: [
         (Math.random() - 0.5) * 0.15,

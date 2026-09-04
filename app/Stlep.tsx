@@ -1,172 +1,81 @@
 "use client";
 
-import { Canvas, useFrame } from "@react-three/fiber";
-import { useRef, useMemo } from "react";
-import * as THREE from "three";
-
-type ShapeConfig = {
-  position: [number, number, number];
-  rotationSpeed: [number, number, number];
-  scale: number;
-  geometry: "icosahedron" | "torus" | "octahedron" | "dodecahedron";
-  colorT: number;
-};
-
-function generateShapes(): ShapeConfig[] {
-  const geometries: ShapeConfig["geometry"][] = [
-    "icosahedron",
-    "torus",
-    "octahedron",
-    "dodecahedron",
-  ];
-  const shapes: ShapeConfig[] = [];
-  const totalShapes = 15;
-
-  for (let i = 0; i < totalShapes; i++) {
-    // Distribute shapes across a grid layout so they never overlap or bunch up randomly
-    const col = i % 5; // 5 columns across the screen width
-    const row = Math.floor(i / 5); // 3 rows down the screen height
-
-    // Map grid positions to coordinate ranges with slight controlled variation
-    const x = (col - 2) * 8 + (Math.random() - 0.5) * 3; // Spans across width
-    const y = (row - 1) * 7 + (Math.random() - 0.5) * 3; // Spans across height
-    const z = (Math.random() - 0.5) * 12 - 6;           // Depth variation
-
-    shapes.push({
-      position: [x, y, z],
-      rotationSpeed: [
-        (Math.random() - 0.5) * 0.15,
-        (Math.random() - 0.5) * 0.15,
-        (Math.random() - 0.5) * 0.1,
-      ],
-      scale: 1.0 + Math.random() * 1.5,
-      geometry: geometries[i % geometries.length],
-      colorT: i / totalShapes, // Smoothly distributes color variance across the screen
-    });
-  }
-  return shapes;
-}
-
-function lerpColor(t: number) {
-  const blue = new THREE.Color("#3b82f6");
-  const purple = new THREE.Color("#a855f7");
-  return blue.clone().lerp(purple, t);
-}
-
-function WireShape({ config }: { config: ShapeConfig }) {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const floatPhase = useMemo(() => Math.random() * Math.PI * 2, []);
-  const color = lerpColor(config.colorT);
-  
-  // Track current scale for the entrance animation (starting at 0)
-  const currentScale = useRef(0);
-
-  useFrame((state, delta) => {
-    if (meshRef.current) {
-      const t = state.clock.getElapsedTime();
-      
-      // Fixed: Slowed down to match your original exact speed
-      meshRef.current.rotation.x += config.rotationSpeed[0] * delta * 0.6;
-      meshRef.current.rotation.y += config.rotationSpeed[1] * delta * 0.6;
-      meshRef.current.rotation.z += config.rotationSpeed[2] * delta * 0.6;
-      
-      // Continuous floating
-      meshRef.current.position.y =
-        config.position[1] + Math.sin(t * 0.5 + floatPhase) * 0.8;
-
-      // Entrance animation: Smoothly scale up from 0 to the target scale
-      currentScale.current = THREE.MathUtils.damp(
-        currentScale.current,
-        config.scale,
-        2.5, // Speed of the pop-in
-        delta
-      );
-      meshRef.current.scale.setScalar(currentScale.current);
-    }
-  });
-
-  const geometryEl = (() => {
-    switch (config.geometry) {
-      case "icosahedron": return <icosahedronGeometry args={[1, 0]} />;
-      case "torus": return <torusGeometry args={[1, 0.3, 16, 32]} />;
-      case "octahedron": return <octahedronGeometry args={[1, 0]} />;
-      case "dodecahedron": return <dodecahedronGeometry args={[1, 0]} />;
-    }
-  })();
-
-  return (
-    <mesh ref={meshRef} position={config.position}>
-      {geometryEl}
-      <meshBasicMaterial 
-        color={color} 
-        wireframe 
-        transparent 
-        opacity={0.35} 
-        blending={THREE.AdditiveBlending}
-        depthWrite={false}
-      />
-    </mesh>
-  );
-}
-
-function Scene() {
-  const shapes = useMemo(() => generateShapes(), []);
-  const groupRef = useRef<THREE.Group>(null);
-
-  // Mouse Interaction: Tilt the entire scene based on cursor position
-  useFrame((state, delta) => {
-    if (groupRef.current) {
-      // Calculate target rotation based on normalized mouse coordinates (-1 to 1)
-      const targetX = (state.pointer.x * Math.PI) / 12; // Controls pan left/right
-      const targetY = (state.pointer.y * Math.PI) / 12; // Controls pan up/down
-      
-      // Smoothly interpolate current rotation to the target rotation
-      groupRef.current.rotation.y = THREE.MathUtils.damp(groupRef.current.rotation.y, targetX, 3, delta);
-      groupRef.current.rotation.x = THREE.MathUtils.damp(groupRef.current.rotation.x, -targetY, 3, delta);
-    }
-  });
-
-  return (
-    <>
-      <fog attach="fog" args={["#000000", 12, 35]} />
-      {/* Wrap shapes in a group to control them all together with the mouse */}
-      <group ref={groupRef}>
-        {shapes.map((s, i) => (
-          <WireShape key={i} config={s} />
-        ))}
-      </group>
-    </>
-  );
-}
+import { useState } from "react";
 
 export function FloatingShapes() {
+  const [user, setUser] = useState<{ name: string; avatar: string } | null>(null);
+
+  const handleLogin = () => {
+    setUser({
+      name: "Usuario",
+      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
+    });
+  };
+
   return (
-    <section className="relative w-full h-screen bg-black overflow-hidden font-sans">
-      <div className="absolute inset-0 w-full h-full pointer-events-none z-[1]">
-        <div className="absolute -top-[10%] -left-[10%] w-[60vw] h-[60vw] rounded-full bg-blue-600/20 blur-[120px] animate-aurora-1 mix-blend-screen" />
-        <div className="absolute bottom-[0%] -right-[10%] w-[50vw] h-[50vw] rounded-full bg-purple-600/20 blur-[120px] animate-aurora-2 mix-blend-screen" />
+    <section className="relative w-full h-screen bg-black overflow-hidden font-sans flex flex-col justify-between">
+      {/* Fondo con Malla de Luz Ambiental Sutil y Elegante (Mesh Gradient) */}
+      <div className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-hidden">
+        <div className="absolute top-[-20%] left-[20%] w-[50vw] h-[50vw] rounded-full bg-blue-600/10 blur-[150px]" />
+        <div className="absolute bottom-[-20%] right-[20%] w-[50vw] h-[50vw] rounded-full bg-indigo-600/10 blur-[150px]" />
       </div>
 
-      <Canvas camera={{ position: [0, 0, 18], fov: 60 }}>
-        <Scene />
-      </Canvas>
+      {/* Header Superior: Avatar a la izquierda e Inicio de sesión a la derecha */}
+      <div className="w-full p-6 md:p-10 flex justify-between items-center z-20 animate-fade-in-up">
+        {/* Avatar de Usuario */}
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-full bg-white/5 border border-white/10 backdrop-blur-xl flex items-center justify-center overflow-hidden shadow-2xl transition-transform hover:scale-105">
+            {user ? (
+              <img src={user.avatar} alt="Perfil" className="w-full h-full object-cover" />
+            ) : (
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            )}
+          </div>
+          {user && (
+            <span className="text-gray-200 text-sm font-medium hidden sm:inline-block tracking-wide">
+              {user.name}
+            </span>
+          )}
+        </div>
 
-      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10">
-        <div className="absolute w-[80vw] max-w-[800px] h-[300px] bg-black/60 blur-[80px] rounded-full animate-fade-in-up" />
-        
-        {/* Added animation classes and stagger delays to the text */}
-        <h1 className="relative font-display text-5xl md:text-7xl font-bold text-center px-6 max-w-5xl leading-tight tracking-tight animate-fade-in-up opacity-0 fill-mode-forwards delay-100">
-          <span className="bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-500 bg-clip-text text-transparent drop-shadow-sm">
+        {/* Botón de Iniciar sesión con Google (Estilo Burbuja Minimalista) */}
+        {!user && (
+          <button 
+            onClick={handleLogin}
+            className="flex items-center gap-3 bg-white text-black font-medium text-sm px-5 py-2.5 rounded-full shadow-[0_4px_20px_rgba(255,255,255,0.1)] hover:bg-gray-100 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 cursor-pointer"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
+              <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.19v3.15C3.17 21.3 7.25 24 12 24z"/>
+              <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.19C.43 8.1 0 9.8 0 12s.43 3.9 1.19 5.42l4.09-3.15z"/>
+              <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.25 0 3.17 2.7 1.19 6.58l4.09 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+            </svg>
+            <span>Iniciar sesión con Google</span>
+          </button>
+        )}
+      </div>
+
+      {/* Contenido Central */}
+      <div className="flex-1 flex flex-col items-center justify-center z-10 px-6 -mt-10">
+        <h1 className="relative font-display text-5xl md:text-7xl font-bold text-center max-w-5xl leading-tight tracking-tight animate-fade-in-up opacity-0 fill-mode-forwards delay-100">
+          <span className="bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">
             Stlep
           </span>
-          <span className="text-white drop-shadow-md">
+          <span className="text-white">
             , nueva generación de edición de video impulsado por IA
           </span>
         </h1>
         
-        <p className="relative mt-6 text-gray-400 text-lg md:text-xl max-w-2xl text-center font-medium drop-shadow-md animate-fade-in-up opacity-0 fill-mode-forwards delay-300">
+        <p className="relative mt-6 text-gray-400 text-lg md:text-xl max-w-2xl text-center font-normal tracking-wide animate-fade-in-up opacity-0 fill-mode-forwards delay-300">
           Potencia tu flujo de trabajo con herramientas de renderizado inteligentes.
         </p>
+      </div>
+
+      {/* Footer minimalista opcional de relleno */}
+      <div className="w-full p-6 text-center z-10">
+        <span className="text-xs text-zinc-600 tracking-wider uppercase">Stlep Intelligence © 2026</span>
       </div>
     </section>
   );

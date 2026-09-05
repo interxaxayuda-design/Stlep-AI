@@ -3,7 +3,6 @@
 import { useState, useRef, useMemo } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 
 interface Pantalla2Props {
   user: { name: string; avatar: string } | null;
@@ -11,32 +10,82 @@ interface Pantalla2Props {
 }
 
 // ---------------------------------------------------------------------------
-// Elemento 3D: fotogramas de video flotando en el espacio.
-// En vez de un campo de partículas genérico, usamos una forma que remite
-// directamente al producto (clips / frames de edición), con una sola
-// familia de color y materiales de vidrio esmerilado en vez de neón.
+// Starfield: capa fija de puntos tenues que le dan densidad al fondo,
+// sin el parpadeo errático de un sistema de partículas.
 // ---------------------------------------------------------------------------
-function FloatingFrames() {
+function Starfield() {
+  const stars = useMemo(() => {
+    return Array.from({ length: 140 }).map((_, i) => ({
+      id: i,
+      top: `${Math.random() * 100}%`,
+      left: `${Math.random() * 100}%`,
+      size: Math.random() < 0.85 ? 1 : Math.random() < 0.97 ? 2 : 3,
+      opacity: 0.25 + Math.random() * 0.55,
+      duration: `${4 + Math.random() * 5}s`,
+      delay: `${Math.random() * 5}s`,
+      tint: Math.random() < 0.7 ? "#e6e9ff" : Math.random() < 0.85 ? "#c4b5fd" : "#93c5fd",
+    }));
+  }, []);
+
+  return (
+    <div className="absolute inset-0 pointer-events-none">
+      {stars.map((s) => (
+        <span
+          key={s.id}
+          className="absolute rounded-full"
+          style={{
+            top: s.top,
+            left: s.left,
+            width: s.size,
+            height: s.size,
+            backgroundColor: s.tint,
+            opacity: s.opacity,
+            boxShadow: s.size > 1 ? `0 0 ${s.size * 2}px ${s.tint}` : "none",
+            animation: `star-twinkle ${s.duration} ease-in-out infinite`,
+            animationDelay: s.delay,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Cristales facetados: geometría low-poly con flatShading real, así cada
+// cara recibe la luz distinto y se ve tallado en vez de un plano liso.
+// Ocupan todo el cuadro, incluidas las esquinas, con tinte violeta/índigo/azul.
+// ---------------------------------------------------------------------------
+const PALETTE = ["#818cf8", "#a78bfa", "#60a5fa", "#c4b5fd"];
+
+function CrystalField() {
   const groupRef = useRef<THREE.Group>(null);
-  const count = 8;
+  const count = 18;
 
-  const geometry = useMemo(() => new RoundedBoxGeometry(2.6, 1.5, 0.06, 4, 0.14), []);
-
-  const frames = useMemo(() => {
+  const crystals = useMemo(() => {
     return Array.from({ length: count }).map((_, i) => {
-      const angle = (i / count) * Math.PI * 2;
-      const radius = 4.2 + Math.random() * 2.2;
+      // Distribución que cubre el cuadro completo, incluidas esquinas y bordes,
+      // con distintas profundidades para dar sensación de "lleno" con paralaje.
+      const edgeBias = Math.random() < 0.55;
+      const x = edgeBias
+        ? (Math.random() < 0.5 ? -1 : 1) * (5 + Math.random() * 6)
+        : (Math.random() - 0.5) * 10;
+      const y = edgeBias
+        ? (Math.random() - 0.5) * 9
+        : (Math.random() < 0.5 ? -1 : 1) * (3 + Math.random() * 4);
+
       return {
         id: i,
-        basePosition: new THREE.Vector3(
-          Math.cos(angle) * radius,
-          (Math.random() - 0.5) * 5,
-          Math.sin(angle) * radius - 6
+        basePosition: new THREE.Vector3(x, y, -3 - Math.random() * 9),
+        rotationSpeed: new THREE.Vector3(
+          (Math.random() - 0.5) * 0.25,
+          (Math.random() - 0.5) * 0.25,
+          (Math.random() - 0.5) * 0.2
         ),
-        rotationSpeed: 0.05 + Math.random() * 0.08,
         floatOffset: Math.random() * Math.PI * 2,
-        floatSpeed: 0.3 + Math.random() * 0.25,
-        scale: 0.55 + Math.random() * 0.5,
+        floatSpeed: 0.25 + Math.random() * 0.3,
+        scale: 0.4 + Math.random() * 1.1,
+        color: PALETTE[i % PALETTE.length],
+        detail: Math.random() < 0.5 ? 0 : 1,
       };
     });
   }, []);
@@ -45,11 +94,11 @@ function FloatingFrames() {
     if (!groupRef.current) return;
     const t = state.clock.getElapsedTime();
 
-    const targetX = (state.pointer.x * Math.PI) / 24;
-    const targetY = (state.pointer.y * Math.PI) / 30;
+    const targetX = (state.pointer.x * Math.PI) / 26;
+    const targetY = (state.pointer.y * Math.PI) / 32;
     groupRef.current.rotation.y = THREE.MathUtils.damp(
       groupRef.current.rotation.y,
-      targetX + t * 0.015,
+      targetX + t * 0.01,
       2,
       delta
     );
@@ -61,40 +110,40 @@ function FloatingFrames() {
     );
 
     groupRef.current.children.forEach((mesh, i) => {
-      const f = frames[i];
-      if (!f) return;
-      mesh.position.y = f.basePosition.y + Math.sin(t * f.floatSpeed + f.floatOffset) * 0.5;
-      mesh.rotation.z = Math.sin(t * f.rotationSpeed + f.floatOffset) * 0.15;
-      mesh.rotation.y = f.basePosition.x * 0.05 + t * f.rotationSpeed * 0.4;
+      const c = crystals[i];
+      if (!c) return;
+      mesh.position.y = c.basePosition.y + Math.sin(t * c.floatSpeed + c.floatOffset) * 0.4;
+      mesh.rotation.x += c.rotationSpeed.x * delta;
+      mesh.rotation.y += c.rotationSpeed.y * delta;
+      mesh.rotation.z += c.rotationSpeed.z * delta;
     });
   });
 
   return (
     <>
-      <ambientLight intensity={0.35} color="#8b93ff" />
-      <directionalLight position={[6, 8, 6]} intensity={1.1} color="#c7d2fe" />
-      <pointLight position={[-6, -3, -4]} intensity={0.6} color="#4f46e5" />
+      <ambientLight intensity={0.4} color="#a5b4fc" />
+      <directionalLight position={[5, 8, 6]} intensity={1.4} color="#e0e7ff" />
+      <pointLight position={[-8, -2, -2]} intensity={1.1} color="#8b5cf6" />
+      <pointLight position={[6, -4, 2]} intensity={0.8} color="#3b82f6" />
 
       <group ref={groupRef}>
-        {frames.map((f) => (
-          <mesh
-            key={f.id}
-            geometry={geometry}
-            position={f.basePosition}
-            scale={f.scale}
-          >
+        {crystals.map((c) => (
+          <mesh key={c.id} position={c.basePosition} scale={c.scale}>
+            <icosahedronGeometry args={[1, c.detail]} />
             <meshPhysicalMaterial
-              color="#e0e4ff"
-              transmission={0.88}
-              thickness={0.4}
-              roughness={0.18}
-              metalness={0.05}
-              ior={1.3}
-              clearcoat={0.6}
-              clearcoatRoughness={0.25}
+              color={c.color}
+              flatShading
+              transmission={0.55}
+              thickness={1.2}
+              roughness={0.15}
+              metalness={0.1}
+              ior={1.5}
+              clearcoat={0.8}
+              clearcoatRoughness={0.2}
               transparent
-              opacity={0.9}
-              side={THREE.DoubleSide}
+              opacity={0.92}
+              emissive={c.color}
+              emissiveIntensity={0.08}
             />
           </mesh>
         ))}
@@ -121,7 +170,7 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
   };
 
   return (
-    <section className="relative w-full h-screen bg-[#050608] overflow-hidden font-sans flex flex-col justify-between select-none">
+    <section className="relative w-full h-screen overflow-hidden font-sans flex flex-col justify-between select-none bg-[#050510]">
 
       <style>{`
         @keyframes pulse-ring {
@@ -133,24 +182,36 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
           0% { transform: translateX(-120%) skewX(-15deg); }
           100% { transform: translateX(220%) skewX(-15deg); }
         }
+        @keyframes star-twinkle {
+          0%, 100% { opacity: 0.2; }
+          50% { opacity: 1; }
+        }
       `}</style>
 
-      {/* 1. Fondo: un único resplandor difuso, no tres orbes compitiendo */}
+      {/* 1. Nebulosa de fondo: llena el cuadro con profundidad de color */}
       <div className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-hidden">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[70vw] h-[70vw] rounded-full bg-indigo-600/12 blur-[180px]" />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/40" />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse 90% 70% at 50% 0%, rgba(88,60,150,0.35) 0%, rgba(30,20,70,0.25) 35%, rgba(5,5,16,0.9) 70%), " +
+              "radial-gradient(ellipse 70% 60% at 20% 100%, rgba(40,50,140,0.3) 0%, transparent 60%), " +
+              "radial-gradient(ellipse 60% 50% at 85% 80%, rgba(90,50,160,0.25) 0%, transparent 60%)",
+          }}
+        />
+        <Starfield />
       </div>
 
-      {/* 2. Canvas 3D: fotogramas flotando */}
+      {/* 2. Canvas 3D: cristales facetados llenando el cuadro */}
       <div className="absolute inset-0 w-full h-full pointer-events-none z-[1]">
-        <Canvas camera={{ position: [0, 0, 12], fov: 55 }}>
-          <FloatingFrames />
+        <Canvas camera={{ position: [0, 0, 11], fov: 58 }}>
+          <CrystalField />
         </Canvas>
       </div>
 
       {/* 3. Header */}
       <div className="w-full p-6 md:p-8 flex justify-between items-center z-20 pointer-events-auto">
-        <div className="flex items-center gap-3 bg-white/[0.03] border border-white/10 px-4 py-2 rounded-full backdrop-blur-xl">
+        <div className="flex items-center gap-3 bg-white/[0.04] border border-white/10 px-4 py-2 rounded-full backdrop-blur-xl">
           <div className="w-9 h-9 rounded-full bg-white/[0.06] border border-white/10 flex items-center justify-center overflow-hidden shrink-0">
             {user ? (
               <img src={user.avatar} alt="Perfil" className="w-full h-full object-cover" />
@@ -186,13 +247,13 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
       {/* 4. Contenido central */}
       <div className="flex-1 flex flex-col items-center justify-center z-10 px-6 pointer-events-none">
 
-        <h1 className="font-display text-5xl md:text-7xl font-extrabold text-center tracking-tight mb-10 text-white">
+        <h1 className="font-display text-5xl md:text-7xl font-extrabold text-center tracking-tight mb-10 text-white drop-shadow-[0_0_40px_rgba(139,92,246,0.25)]">
           Empieza a delegar
         </h1>
 
         <div className="pointer-events-auto relative flex flex-col items-center">
 
-          <div className="absolute -inset-4 rounded-3xl bg-indigo-500/10 blur-xl animate-[pulse-ring_4s_ease-in-out_infinite] pointer-events-none" />
+          <div className="absolute -inset-4 rounded-3xl bg-indigo-500/15 blur-xl animate-[pulse-ring_4s_ease-in-out_infinite] pointer-events-none" />
 
           <div className="relative group rounded-2xl border border-white/10 hover:border-indigo-400/40 transition-colors duration-500">
 
@@ -200,10 +261,9 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
               onClick={handleFileUpload}
               onMouseEnter={() => setIsHovered(true)}
               onMouseLeave={() => setIsHovered(false)}
-              className="relative w-[300px] sm:w-[420px] md:w-[480px] h-28 sm:h-32 rounded-2xl bg-white/[0.03] backdrop-blur-2xl flex items-center justify-between px-8 text-white transition-all duration-500 cursor-pointer overflow-hidden group-hover:scale-[1.01] active:scale-[0.98]"
+              className="relative w-[300px] sm:w-[420px] md:w-[480px] h-28 sm:h-32 rounded-2xl bg-white/[0.04] backdrop-blur-2xl flex items-center justify-between px-8 text-white transition-all duration-500 cursor-pointer overflow-hidden group-hover:scale-[1.01] active:scale-[0.98]"
             >
 
-              {/* Barrido de brillo único al hover, en vez de estrellitas dispersas */}
               {isHovered && (
                 <div className="absolute inset-0 pointer-events-none overflow-hidden">
                   <div
@@ -248,17 +308,17 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
       {/* 5. Chips inferiores */}
       <div className="w-full px-6 pb-8 z-20 pointer-events-auto flex flex-wrap justify-center items-center gap-4 sm:gap-8 max-w-4xl mx-auto">
 
-        <div className="flex items-center gap-2.5 bg-white/[0.03] border border-white/10 px-4 py-2 rounded-xl backdrop-blur-md text-xs sm:text-sm text-slate-300">
+        <div className="flex items-center gap-2.5 bg-white/[0.04] border border-white/10 px-4 py-2 rounded-xl backdrop-blur-md text-xs sm:text-sm text-slate-300">
           <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
           <span>Formatos: MP4, MOV, 4K+</span>
         </div>
 
-        <div className="flex items-center gap-2.5 bg-white/[0.03] border border-white/10 px-4 py-2 rounded-xl backdrop-blur-md text-xs sm:text-sm text-slate-300">
+        <div className="flex items-center gap-2.5 bg-white/[0.04] border border-white/10 px-4 py-2 rounded-xl backdrop-blur-md text-xs sm:text-sm text-slate-300">
           <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
           <span>Procesamiento ultra rápido</span>
         </div>
 
-        <div className="flex items-center gap-2.5 bg-white/[0.03] border border-white/10 px-4 py-2 rounded-xl backdrop-blur-md text-xs sm:text-sm text-slate-300">
+        <div className="flex items-center gap-2.5 bg-white/[0.04] border border-white/10 px-4 py-2 rounded-xl backdrop-blur-md text-xs sm:text-sm text-slate-300">
           <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
           <span>Edición inteligente con IA</span>
         </div>

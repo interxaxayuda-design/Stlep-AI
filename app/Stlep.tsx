@@ -79,7 +79,7 @@ function StlepParticleField() {
   );
 }
 
-// Stack tecnológico actualizado con rutas 100% estables
+// Stack tecnológico
 const technologies = [
   { 
     name: "VS Code", 
@@ -126,7 +126,6 @@ const technologies = [
 export function TechMarquee() {
   return (
     <div className="w-full pb-8 pt-4 relative overflow-hidden z-20 pointer-events-auto">
-      {/* Degradados laterales elegantes para difuminar los extremos */}
       <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-black via-black/80 to-transparent z-10 pointer-events-none" />
       <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-black via-black/80 to-transparent z-10 pointer-events-none" />
 
@@ -157,6 +156,7 @@ export function FloatingShapes() {
   const [user, setUser] = useState<{ name: string; avatar: string } | null>(null);
 
   const handleLogin = () => {
+    // Aquí iría tu lógica real con Firebase Auth
     setUser({
       name: "Usuario",
       avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
@@ -166,21 +166,21 @@ export function FloatingShapes() {
   return (
     <section className="relative w-full h-screen bg-black overflow-hidden font-sans flex flex-col justify-between select-none">
       
-      {/* Fondo con Iluminación Ambiental Cenital */}
+      {/* Fondo con Iluminación Ambiental */}
       <div className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-hidden">
         <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[60vw] h-[40vw] rounded-full bg-blue-600/15 blur-[150px]" />
         <div className="absolute top-[10%] left-1/2 -translate-x-1/2 w-[40vw] h-[30vw] rounded-full bg-purple-600/15 blur-[140px]" />
       </div>
 
-      {/* Canvas 3D de Partículas Esféricas */}
+      {/* Canvas 3D */}
       <div className="absolute inset-0 w-full h-full pointer-events-none z-[1]">
         <Canvas camera={{ position: [0, 0, 14], fov: 60 }}>
           <StlepParticleField />
         </Canvas>
       </div>
 
-      {/* Header Superior Original de Stlep */}
-      <div className="w-full p-6 md:p-10 flex justify-between items-center z-20">
+      {/* Header Superior */}
+      <div className="w-full p-6 md:p-10 flex justify-between items-center z-20 pointer-events-auto">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 rounded-full bg-white/5 border border-white/10 backdrop-blur-xl flex items-center justify-center overflow-hidden shadow-2xl transition-transform hover:scale-105">
             {user ? (
@@ -209,13 +209,23 @@ export function FloatingShapes() {
               <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.19C.43 8.1 0 9.8 0 12s.43 3.9 1.19 5.42l4.09-3.15z"/>
               <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.25 0 3.17 2.7 1.19 6.58l4.09 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
             </svg>
-            <span>Iniciar sesión con Google</span>
+            <span>Iniciar sesión</span>
           </button>
         )}
       </div>
 
-      {/* Contenido Central Original */}
+      {/* Contenido Central */}
       <div className="flex-1 flex flex-col items-center justify-center z-10 px-6 -mt-10 pointer-events-none">
+        
+        {/* Link sutil: ¿Qué es Stlep? */}
+        <div className="animate-fade-in-up opacity-0 fill-mode-forwards mb-6 pointer-events-auto">
+          <button className="group flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-1.5 rounded-full text-sm font-medium text-zinc-300 hover:text-white hover:bg-white/10 transition-all backdrop-blur-md shadow-lg cursor-pointer">
+            <span className="text-blue-400 group-hover:scale-110 transition-transform duration-300">✨</span> 
+            ¿Qué es Stlep?
+          </button>
+        </div>
+
+        {/* Título Principal */}
         <h1 className="relative font-display text-5xl md:text-7xl font-bold text-center max-w-5xl leading-tight tracking-tight animate-fade-in-up opacity-0 fill-mode-forwards delay-100">
           <span className="bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">
             Stlep
@@ -225,12 +235,31 @@ export function FloatingShapes() {
           </span>
         </h1>
         
+        {/* Descripción Actualizada */}
         <p className="relative mt-6 text-gray-400 text-lg md:text-xl max-w-2xl text-center font-normal tracking-wide animate-fade-in-up opacity-0 fill-mode-forwards delay-300">
-          Potencia tu flujo de trabajo con herramientas de renderizado inteligentes.
+          Una IA avanzada que edita tus videos para hacerlos de lo mejor de lo mejor.
         </p>
+
+        {/* Botón CTA: Empezar ya */}
+        <div className="animate-fade-in-up opacity-0 fill-mode-forwards delay-[400ms] mt-10 pointer-events-auto">
+          <button 
+            onClick={handleLogin}
+            className="group flex items-center gap-3 bg-white text-black font-semibold text-base md:text-lg px-8 py-3.5 rounded-full shadow-[0_0_30px_rgba(255,255,255,0.15)] hover:shadow-[0_0_50px_rgba(255,255,255,0.3)] hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer"
+          >
+            <span>Empezar ya</span>
+            <svg 
+              className="w-5 h-5 group-hover:translate-x-1.5 transition-transform duration-300" 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
+          </button>
+        </div>
       </div>
 
-      {/* Carrusel Integrado con Three.js corregido */}
+      {/* Carrusel Integrado */}
       <TechMarquee />
     </section>
   );

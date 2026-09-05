@@ -79,7 +79,7 @@ function StlepParticleField() {
   );
 }
 
-// Stack con logos oficiales corregidos y Database incluido
+// Stack tecnológico actualizado con rutas 100% estables
 const technologies = [
   { 
     name: "VS Code", 
@@ -230,7 +230,7 @@ export function FloatingShapes() {
         </p>
       </div>
 
-      {/* Carrusel Integrado */}
+      {/* Carrusel Integrado con Three.js corregido */}
       <TechMarquee />
     </section>
   );

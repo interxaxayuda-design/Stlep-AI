@@ -392,13 +392,13 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
       </div>
 
       {/* 4. Contenido central */}
-      <div className="flex-1 flex flex-col items-center justify-center z-10 px-6 pointer-events-none overflow-y-auto py-8">
+      <div className="flex-1 flex flex-col items-center justify-center z-10 px-6 pointer-events-none">
 
         <h1 className="font-display text-5xl md:text-7xl font-extrabold text-center tracking-tight mb-10 text-white drop-shadow-[0_0_40px_rgba(139,92,246,0.25)]">
           Empieza a delegar
         </h1>
 
-        <div className="pointer-events-auto relative flex flex-col items-center w-full">
+        <div className="pointer-events-auto relative flex flex-col items-center">
 
           {stage !== "ready" && (
             <div className="absolute -inset-4 rounded-3xl bg-indigo-500/15 blur-xl animate-[pulse-ring_4s_ease-in-out_infinite] pointer-events-none" />

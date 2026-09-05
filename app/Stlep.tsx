@@ -162,15 +162,25 @@ export function FloatingShapes() {
       name: "Usuario",
       avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
     });
+    // Cerrar el modal de info si se inicia sesión desde ahí
+    setShowInfo(false);
   };
 
   return (
     <section className="relative w-full h-screen bg-black overflow-hidden font-sans flex flex-col justify-between select-none">
       
-      {/* Modal de Información (¿Qué es Stlep?) */}
+      {/* Modal de Información con Animación de Apertura (Sales Pitch) */}
       {showInfo && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md pointer-events-auto transition-opacity duration-300">
-          <div className="bg-zinc-900/90 border border-white/10 p-8 rounded-3xl shadow-2xl max-w-md w-full relative">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md pointer-events-auto">
+          {/* Capa que anima el contenedor (Zoom-in Fade) */}
+          <div className="bg-zinc-900/95 border border-white/10 p-8 rounded-3xl shadow-[0_0_80px_rgba(59,130,246,0.15)] max-w-lg w-full relative animate-[scale-in_0.3s_ease-out_forwards] opacity-0 shadow-2xl">
+            <style>{`
+              @keyframes scale-in {
+                0% { transform: scale(0.95) translateY(10px); opacity: 0; }
+                100% { transform: scale(1) translateY(0); opacity: 1; }
+              }
+            `}</style>
+
             <button 
               onClick={() => setShowInfo(false)}
               className="absolute top-5 right-5 text-zinc-500 hover:text-white transition-colors cursor-pointer"
@@ -181,17 +191,41 @@ export function FloatingShapes() {
             </button>
             
             <div className="flex items-center gap-4 mb-5">
-              <div className="w-12 h-12 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-full bg-blue-500/10 border border-blue-500/30 flex items-center justify-center shrink-0">
                 <svg className="w-6 h-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               </div>
-              <h2 className="text-2xl font-bold text-white tracking-wide">¿Qué es Stlep?</h2>
+              <h2 className="text-2xl font-bold text-white tracking-wide">Despídete de la edición</h2>
             </div>
             
-            <p className="text-zinc-300 text-base leading-relaxed">
-              Es una app de edición de video avanzada, se encarga de darle dinamismo, retención y entretenimiento, con elementos avanzados de edición de primera generación.
-            </p>
+            <div className="text-zinc-300 text-base leading-relaxed space-y-4">
+              <p>
+                ¿Estás perdiendo horas de tu vida frente al editor mientras otros creadores te roban las vistas? <strong className="text-white">El algoritmo no perdona los videos aburridos.</strong>
+              </p>
+              <p>
+                <strong>Stlep</strong> es una app de edición con Inteligencia Artificial avanzada que elimina ese dolor de cabeza. Se encarga de inyectar <span className="text-blue-400 font-semibold">dinamismo extremo, retención magnética y entretenimiento puro</span> mediante elementos de edición de primera generación.
+              </p>
+              <p className="text-zinc-400 text-sm italic">
+                Empieza a delegar hoy mismo para olvidarte de la edición y enfocarte solo en crear.
+              </p>
+            </div>
+
+            {/* Botón CTA dentro del Modal */}
+            {!user && (
+              <button 
+                onClick={handleLogin}
+                className="mt-8 w-full group flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold text-base px-6 py-3.5 rounded-xl shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:shadow-[0_0_30px_rgba(59,130,246,0.5)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 cursor-pointer"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24">
+                  <path fill="currentColor" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
+                  <path fill="currentColor" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.19v3.15C3.17 21.3 7.25 24 12 24z"/>
+                  <path fill="currentColor" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.19C.43 8.1 0 9.8 0 12s.43 3.9 1.19 5.42l4.09-3.15z"/>
+                  <path fill="currentColor" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.25 0 3.17 2.7 1.19 6.58l4.09 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+                </svg>
+                <span>Inicia sesión para delegar tu edición</span>
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -253,7 +287,6 @@ export function FloatingShapes() {
             onClick={() => setShowInfo(true)}
             className="group flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-1.5 rounded-full text-sm font-medium text-zinc-300 hover:text-white hover:bg-white/10 transition-all backdrop-blur-md shadow-lg cursor-pointer"
           >
-            {/* Ícono SVG reemplazando al emoji */}
             <svg 
               className="w-4 h-4 text-blue-400 group-hover:scale-110 transition-transform duration-300" 
               fill="none" 
@@ -281,13 +314,13 @@ export function FloatingShapes() {
           Una IA avanzada que edita tus videos para hacerlos de lo mejor de lo mejor.
         </p>
 
-        {/* Botón CTA: Empezar ya */}
+        {/* Botón CTA Principal */}
         <div className="animate-fade-in-up opacity-0 fill-mode-forwards delay-[400ms] mt-10 pointer-events-auto">
           <button 
             onClick={handleLogin}
             className="group flex items-center gap-3 bg-white text-black font-semibold text-base md:text-lg px-8 py-3.5 rounded-full shadow-[0_0_30px_rgba(255,255,255,0.15)] hover:shadow-[0_0_50px_rgba(255,255,255,0.3)] hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer"
           >
-            <span>Empezar ya</span>
+            <span>Empieza ahora</span>
             <svg 
               className="w-5 h-5 group-hover:translate-x-1.5 transition-transform duration-300" 
               fill="none" 

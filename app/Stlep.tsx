@@ -4,7 +4,7 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { useRef, useMemo, useState } from "react";
 import * as THREE from "three";
 
-// Campo de partículas con geometría y relieve 3D real
+// Campo de partículas con relieve 3D real
 function StlepParticleField() {
   const pointsRef = useRef<THREE.Points>(null);
   const count = 1000;
@@ -43,7 +43,6 @@ function StlepParticleField() {
     }
   });
 
-  // Generar textura proceduralmente para que cada punto sea una esfera perfecta con volumen (sin bordes cuadrados)
   const particleTexture = useMemo(() => {
     const canvas = document.createElement("canvas");
     canvas.width = 64;
@@ -80,6 +79,43 @@ function StlepParticleField() {
   );
 }
 
+// Lista de tecnologías que utilizas en tu stack
+const technologies = [
+  { name: "VS Code", icon: "💻" },
+  { name: "Node.js", icon: "🟢" },
+  { name: "Firebase", icon: "🔥" },
+  { name: "Gemini API", icon: "✨" },
+  { name: "Next.js", icon: "▲" },
+  { name: "React", icon: "⚛️" },
+  { name: "Tailwind CSS", icon: "🎨" },
+  { name: "Vercel", icon: "🚀" },
+  { name: "Three.js", icon: "🌐" }
+];
+
+export function TechMarquee() {
+  return (
+    <div className="w-full py-6 border-t border-white/5 bg-black/40 backdrop-blur-md relative overflow-hidden z-20">
+      {/* Degradados laterales para desvanecer el scroll suavemente */}
+      <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-black to-transparent z-10 pointer-events-none" />
+      <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-black to-transparent z-10 pointer-events-none" />
+
+      <div className="flex w-full overflow-hidden">
+        <div className="flex animate-marquee gap-14 whitespace-nowrap items-center min-w-full">
+          {[...technologies, ...technologies, ...technologies].map((tech, index) => (
+            <div 
+              key={index} 
+              className="flex items-center gap-3 text-zinc-400 hover:text-white transition-colors duration-300 cursor-default select-none"
+            >
+              <span className="text-lg opacity-80">{tech.icon}</span>
+              <span className="text-sm font-medium tracking-wide">{tech.name}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function FloatingShapes() {
   const [user, setUser] = useState<{ name: string; avatar: string } | null>(null);
 
@@ -99,7 +135,7 @@ export function FloatingShapes() {
         <div className="absolute top-[10%] left-1/2 -translate-x-1/2 w-[40vw] h-[30vw] rounded-full bg-purple-600/15 blur-[140px]" />
       </div>
 
-      {/* Canvas 3D de Partículas 3D Esféricas */}
+      {/* Canvas 3D de Partículas Esféricas */}
       <div className="absolute inset-0 w-full h-full pointer-events-none z-[1]">
         <Canvas camera={{ position: [0, 0, 14], fov: 60 }}>
           <StlepParticleField />
@@ -157,10 +193,8 @@ export function FloatingShapes() {
         </p>
       </div>
 
-      {/* Footer minimalista */}
-      <div className="w-full p-6 text-center z-10">
-        <span className="text-xs text-zinc-600 tracking-wider uppercase">Stlep Intelligence © 2026</span>
-      </div>
+      {/* Carrusel a 25 segundos */}
+      <TechMarquee />
     </section>
   );
 }

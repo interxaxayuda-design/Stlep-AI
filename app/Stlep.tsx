@@ -157,7 +157,6 @@ export function FloatingShapes() {
   const [showInfo, setShowInfo] = useState(false);
 
   const handleLogin = () => {
-    // Aquí iría tu lógica real con Firebase Auth
     setUser({
       name: "Usuario",
       avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
@@ -312,11 +311,11 @@ export function FloatingShapes() {
           Una IA avanzada que edita tus videos para hacerlos de lo mejor de lo mejor.
         </p>
 
-        {/* Botón CTA Principal en Estilo Outline (Líneas blancas) */}
+        {/* Botón CTA Principal (Blanco con brillo como estaba originalmente) */}
         <div className="animate-fade-in-up opacity-0 fill-mode-forwards delay-[400ms] mt-10 pointer-events-auto">
           <button 
             onClick={handleLogin}
-            className="group flex items-center gap-3 bg-transparent border border-white/30 text-white font-semibold text-base md:text-lg px-8 py-3.5 rounded-full hover:bg-white/10 hover:border-white hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer shadow-lg"
+            className="group flex items-center gap-3 bg-white text-black font-semibold text-base md:text-lg px-8 py-3.5 rounded-full shadow-[0_0_30px_rgba(255,255,255,0.15)] hover:shadow-[0_0_50px_rgba(255,255,255,0.3)] hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer"
           >
             <span>Empezar ya</span>
             <svg 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 
 interface Pantalla2Props {
   user: { name: string; avatar: string } | null;
@@ -48,107 +48,135 @@ function Starfield() {
 }
 
 // ---------------------------------------------------------------------------
-// TriangleLines: red de líneas finas tipo wireframe, pegada a la pantalla
-// (SVG plano, no un objeto 3D). 3 puntos de origen abren un abanico de
-// líneas hacia distintos puntos del viewport, como en la referencia.
-// Se usa viewBox 0-100 con preserveAspectRatio="none" para que se estire
-// pegada a los bordes en cualquier resolución.
+// TriangleLinesCanvas: red de líneas finas tipo wireframe, dibujada en
+// <canvas> con coordenadas ya convertidas a píxeles reales del viewport.
+// Evita la distorsión de un SVG estirado con preserveAspectRatio="none",
+// que es lo que causaba líneas que se pasaban o no llegaban al punto.
+// Las posiciones de origen/destino siguen en porcentaje (0-100) para que
+// definir el layout sea fácil, pero se convierten a píxeles antes de
+// dibujar, respetando el aspect ratio real de la pantalla.
 // ---------------------------------------------------------------------------
-function TriangleLines() {
-  const origins = useMemo(
-    () => [
-      {
-        id: "o1",
-        point: { x: 58, y: -6 },
-        targets: [
-          { x: 8, y: 22 },
-          { x: 30, y: 55 },
-          { x: 62, y: 68 },
-          { x: 88, y: 40 },
-          { x: 102, y: 78 },
-        ],
-      },
-      {
-        id: "o2",
-        point: { x: -4, y: 46 },
-        targets: [
-          { x: 22, y: 8 },
-          { x: 40, y: 62 },
-          { x: 12, y: 96 },
-          { x: 58, y: 90 },
-        ],
-      },
-      {
-        id: "o3",
-        point: { x: 104, y: 72 },
-        targets: [
-          { x: 66, y: 34 },
-          { x: 44, y: 78 },
-          { x: 90, y: 12 },
-        ],
-      },
+const ORIGINS = [
+  {
+    id: "o1",
+    point: { x: 58, y: -6 },
+    targets: [
+      { x: 8, y: 22 },
+      { x: 30, y: 55 },
+      { x: 62, y: 68 },
+      { x: 88, y: 40 },
+      { x: 102, y: 78 },
     ],
-    []
-  );
+  },
+  {
+    id: "o2",
+    point: { x: -4, y: 46 },
+    targets: [
+      { x: 22, y: 8 },
+      { x: 40, y: 62 },
+      { x: 12, y: 96 },
+      { x: 58, y: 90 },
+    ],
+  },
+  {
+    id: "o3",
+    point: { x: 104, y: 72 },
+    targets: [
+      { x: 66, y: 34 },
+      { x: 44, y: 78 },
+      { x: 90, y: 12 },
+    ],
+  },
+];
+
+function TriangleLinesCanvas() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const toPx = (pct: { x: number; y: number }, width: number, height: number) => ({
+      x: (pct.x / 100) * width,
+      y: (pct.y / 100) * height,
+    });
+
+    const draw = () => {
+      const dpr = window.devicePixelRatio || 1;
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+
+      // Reset transform antes de reescalar, o se acumula en cada resize.
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(dpr, dpr);
+      ctx.clearRect(0, 0, width, height);
+
+      // 1. Líneas, con degradado que se desvanece hacia el destino.
+      ORIGINS.forEach((o) => {
+        const origin = toPx(o.point, width, height);
+        o.targets.forEach((t) => {
+          const target = toPx(t, width, height);
+          const gradient = ctx.createLinearGradient(origin.x, origin.y, target.x, target.y);
+          gradient.addColorStop(0, "rgba(165,180,252,0.5)");
+          gradient.addColorStop(1, "rgba(165,180,252,0)");
+
+          ctx.strokeStyle = gradient;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(origin.x, origin.y);
+          ctx.lineTo(target.x, target.y);
+          ctx.stroke();
+        });
+      });
+
+      // 2. Brillo + núcleo en cada punto de origen.
+      ORIGINS.forEach((o) => {
+        const origin = toPx(o.point, width, height);
+
+        const glowRadius = 46;
+        const glow = ctx.createRadialGradient(
+          origin.x,
+          origin.y,
+          0,
+          origin.x,
+          origin.y,
+          glowRadius
+        );
+        glow.addColorStop(0, "rgba(196,181,253,0.85)");
+        glow.addColorStop(1, "rgba(196,181,253,0)");
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(origin.x, origin.y, glowRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#e0e7ff";
+        ctx.beginPath();
+        ctx.arc(origin.x, origin.y, 2, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    };
+
+    draw();
+
+    const resizeObserver = new ResizeObserver(() => draw());
+    resizeObserver.observe(container);
+
+    return () => resizeObserver.disconnect();
+  }, []);
 
   return (
-    <svg
-      className="absolute inset-0 w-full h-full"
-      viewBox="0 0 100 100"
-      preserveAspectRatio="none"
-    >
-      <defs>
-        <radialGradient id="nodeGlow" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#c4b5fd" stopOpacity="0.9" />
-          <stop offset="100%" stopColor="#c4b5fd" stopOpacity="0" />
-        </radialGradient>
-        {origins.map((o) => (
-          <linearGradient
-            key={`grad-${o.id}`}
-            id={`grad-${o.id}`}
-            gradientUnits="userSpaceOnUse"
-          >
-            <stop offset="0%" stopColor="#a5b4fc" stopOpacity="0.55" />
-            <stop offset="100%" stopColor="#a5b4fc" stopOpacity="0" />
-          </linearGradient>
-        ))}
-      </defs>
-
-      {origins.map((o) =>
-        o.targets.map((t, i) => (
-          <line
-            key={`${o.id}-${i}`}
-            x1={o.point.x}
-            y1={o.point.y}
-            x2={t.x}
-            y2={t.y}
-            stroke={`url(#grad-${o.id})`}
-            strokeWidth={0.12}
-            vectorEffect="non-scaling-stroke"
-          />
-        ))
-      )}
-
-      {origins.map((o) => (
-        <circle
-          key={`node-${o.id}`}
-          cx={o.point.x}
-          cy={o.point.y}
-          r={6}
-          fill={`url(#nodeGlow)`}
-        />
-      ))}
-      {origins.map((o) => (
-        <circle
-          key={`core-${o.id}`}
-          cx={o.point.x}
-          cy={o.point.y}
-          r={0.5}
-          fill="#e0e7ff"
-          vectorEffect="non-scaling-stroke"
-        />
-      ))}
-    </svg>
+    <div ref={containerRef} className="absolute inset-0 w-full h-full">
+      <canvas ref={canvasRef} className="block" />
+    </div>
   );
 }
 
@@ -202,9 +230,9 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
         <Starfield />
       </div>
 
-      {/* 2. Red de líneas triangulares, pegada a la pantalla */}
+      {/* 2. Red de líneas triangulares, dibujada en canvas */}
       <div className="absolute inset-0 w-full h-full pointer-events-none z-[1]">
-        <TriangleLines />
+        <TriangleLinesCanvas />
       </div>
 
       {/* 3. Header */}

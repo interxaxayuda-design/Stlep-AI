@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 
 interface Pantalla2Props {
   user: { name: string; avatar: string } | null;
@@ -50,11 +50,6 @@ function Starfield() {
 // ---------------------------------------------------------------------------
 // TriangleLinesCanvas: red de líneas finas tipo wireframe, dibujada en
 // <canvas> con coordenadas ya convertidas a píxeles reales del viewport.
-// Evita la distorsión de un SVG estirado con preserveAspectRatio="none",
-// que es lo que causaba líneas que se pasaban o no llegaban al punto.
-// Las posiciones de origen/destino siguen en porcentaje (0-100) para que
-// definir el layout sea fácil, pero se convierten a píxeles antes de
-// dibujar, respetando el aspect ratio real de la pantalla.
 // ---------------------------------------------------------------------------
 const ORIGINS = [
   {
@@ -115,12 +110,10 @@ function TriangleLinesCanvas() {
       canvas.style.width = `${width}px`;
       canvas.style.height = `${height}px`;
 
-      // Reset transform antes de reescalar, o se acumula en cada resize.
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.scale(dpr, dpr);
       ctx.clearRect(0, 0, width, height);
 
-      // 1. Líneas, con degradado que se desvanece hacia el destino.
       ORIGINS.forEach((o) => {
         const origin = toPx(o.point, width, height);
         o.targets.forEach((t) => {
@@ -138,19 +131,11 @@ function TriangleLinesCanvas() {
         });
       });
 
-      // 2. Brillo + núcleo en cada punto de origen.
       ORIGINS.forEach((o) => {
         const origin = toPx(o.point, width, height);
 
         const glowRadius = 46;
-        const glow = ctx.createRadialGradient(
-          origin.x,
-          origin.y,
-          0,
-          origin.x,
-          origin.y,
-          glowRadius
-        );
+        const glow = ctx.createRadialGradient(origin.x, origin.y, 0, origin.x, origin.y, glowRadius);
         glow.addColorStop(0, "rgba(196,181,253,0.85)");
         glow.addColorStop(1, "rgba(196,181,253,0)");
         ctx.fillStyle = glow;
@@ -180,8 +165,130 @@ function TriangleLinesCanvas() {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Compresión de video en cliente (canvas + MediaRecorder, sin dependencias)
+// ---------------------------------------------------------------------------
+const MAX_WIDTH = 854;
+const TARGET_BITRATE = 1_500_000;
+
+type Stage = "idle" | "compressing" | "ready" | "error";
+
+function formatBytes(bytes: number) {
+  if (!bytes) return "0 B";
+  const units = ["B", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${units[i]}`;
+}
+
+function pickMimeType() {
+  const candidates = ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"];
+  for (const type of candidates) {
+    if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(type)) return type;
+  }
+  return "";
+}
+
 export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
   const [isHovered, setIsHovered] = useState(false);
+
+  const [stage, setStage] = useState<Stage>("idle");
+  const [progress, setProgress] = useState(0);
+  const [originalSize, setOriginalSize] = useState(0);
+  const [compressedSize, setCompressedSize] = useState(0);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const [purpose, setPurpose] = useState("");
+  const [styleNotes, setStyleNotes] = useState("");
+
+  const hiddenVideoRef = useRef<HTMLVideoElement>(null);
+  const hiddenCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  const compressFile = useCallback((file: File) => {
+    setStage("compressing");
+    setProgress(0);
+    setErrorMsg("");
+    setOriginalSize(file.size);
+    setCompressedSize(0);
+    setPreviewUrl(null);
+
+    const video = hiddenVideoRef.current;
+    const canvas = hiddenCanvasRef.current;
+    if (!video || !canvas) return;
+
+    const objectUrl = URL.createObjectURL(file);
+    video.src = objectUrl;
+    video.volume = 0;
+
+    video.onloadedmetadata = () => {
+      const scale = Math.min(1, MAX_WIDTH / video.videoWidth);
+      const w = Math.round(video.videoWidth * scale);
+      const h = Math.round(video.videoHeight * scale);
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      let canvasStream: MediaStream;
+      try {
+        canvasStream = (canvas as HTMLCanvasElement & { captureStream: (fps?: number) => MediaStream }).captureStream(30);
+      } catch {
+        setStage("error");
+        setErrorMsg("Este navegador no soporta compresión de video en el cliente.");
+        return;
+      }
+
+      const combined = new MediaStream();
+      canvasStream.getVideoTracks().forEach((t) => combined.addTrack(t));
+      const videoWithCapture = video as HTMLVideoElement & { captureStream?: () => MediaStream };
+      const audioStream = videoWithCapture.captureStream ? videoWithCapture.captureStream() : null;
+      audioStream?.getAudioTracks().forEach((t) => combined.addTrack(t));
+
+      const mimeType = pickMimeType();
+      const recorder = new MediaRecorder(combined, { mimeType, videoBitsPerSecond: TARGET_BITRATE });
+      const chunks: BlobPart[] = [];
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data);
+      };
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: mimeType || "video/webm" });
+        setCompressedSize(blob.size);
+        setPreviewUrl(URL.createObjectURL(blob));
+        setStage("ready");
+        URL.revokeObjectURL(objectUrl);
+      };
+
+      let raf = 0;
+      const draw = () => {
+        if (video.paused || video.ended) return;
+        ctx.drawImage(video, 0, 0, w, h);
+        if (video.duration) setProgress(Math.min(100, (video.currentTime / video.duration) * 100));
+        raf = requestAnimationFrame(draw);
+      };
+
+      video.onended = () => {
+        cancelAnimationFrame(raf);
+        recorder.stop();
+        video.pause();
+      };
+
+      video
+        .play()
+        .then(() => {
+          recorder.start();
+          draw();
+        })
+        .catch(() => {
+          setStage("error");
+          setErrorMsg("No se pudo iniciar la reproducción para comprimir el video.");
+        });
+    };
+
+    video.onerror = () => {
+      setStage("error");
+      setErrorMsg("No se pudo leer el archivo de video.");
+    };
+  }, []);
 
   const handleFileUpload = () => {
     const input = document.createElement("input");
@@ -190,11 +297,23 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
     input.onchange = (e: Event) => {
       const target = e.target as HTMLInputElement;
       const file = target.files?.[0];
-      if (file) {
-        console.log("Video seleccionado:", file.name);
+      if (!file) return;
+      if (!file.type.startsWith("video/")) {
+        setStage("error");
+        setErrorMsg("Elegí un archivo de video válido.");
+        return;
       }
+      compressFile(file);
     };
     input.click();
+  };
+
+  const resetUpload = () => {
+    setStage("idle");
+    setPreviewUrl(null);
+    setOriginalSize(0);
+    setCompressedSize(0);
+    setProgress(0);
   };
 
   return (
@@ -213,6 +332,10 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
         @keyframes star-twinkle {
           0%, 100% { opacity: 0.2; }
           50% { opacity: 1; }
+        }
+        @keyframes fade-slide-up {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
 
@@ -248,9 +371,7 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
             )}
           </div>
           {user && (
-            <span className="text-slate-200 text-sm font-medium tracking-wide pr-1">
-              {user.name}
-            </span>
+            <span className="text-slate-200 text-sm font-medium tracking-wide pr-1">{user.name}</span>
           )}
         </div>
 
@@ -271,69 +392,161 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
       </div>
 
       {/* 4. Contenido central */}
-      <div className="flex-1 flex flex-col items-center justify-center z-10 px-6 pointer-events-none">
+      <div className="flex-1 flex flex-col items-center justify-center z-10 px-6 pointer-events-none overflow-y-auto py-8">
 
         <h1 className="font-display text-5xl md:text-7xl font-extrabold text-center tracking-tight mb-10 text-white drop-shadow-[0_0_40px_rgba(139,92,246,0.25)]">
           Empieza a delegar
         </h1>
 
-        <div className="pointer-events-auto relative flex flex-col items-center">
+        <div className="pointer-events-auto relative flex flex-col items-center w-full">
 
-          <div className="absolute -inset-4 rounded-3xl bg-indigo-500/15 blur-xl animate-[pulse-ring_4s_ease-in-out_infinite] pointer-events-none" />
+          {stage !== "ready" && (
+            <div className="absolute -inset-4 rounded-3xl bg-indigo-500/15 blur-xl animate-[pulse-ring_4s_ease-in-out_infinite] pointer-events-none" />
+          )}
 
-          <div className="relative group rounded-2xl border border-white/10 hover:border-indigo-400/40 transition-colors duration-500">
+          <div className="relative group rounded-2xl border border-white/10 hover:border-indigo-400/40 transition-colors duration-500 w-[300px] sm:w-[420px] md:w-[480px]">
 
-            <button
-              onClick={handleFileUpload}
-              onMouseEnter={() => setIsHovered(true)}
-              onMouseLeave={() => setIsHovered(false)}
-              className="relative w-[300px] sm:w-[420px] md:w-[480px] h-28 sm:h-32 rounded-2xl bg-white/[0.04] backdrop-blur-2xl flex items-center justify-between px-8 text-white transition-all duration-500 cursor-pointer overflow-hidden group-hover:scale-[1.01] active:scale-[0.98]"
-            >
+            {/* Estado: idle — botón original */}
+            {stage === "idle" && (
+              <button
+                onClick={handleFileUpload}
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+                className="relative w-full h-28 sm:h-32 rounded-2xl bg-white/[0.04] backdrop-blur-2xl flex items-center justify-between px-8 text-white transition-all duration-500 cursor-pointer overflow-hidden group-hover:scale-[1.01] active:scale-[0.98]"
+              >
+                {isHovered && (
+                  <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                    <div
+                      className="absolute top-0 left-0 h-full w-1/3 bg-gradient-to-r from-transparent via-white/10 to-transparent"
+                      style={{ animation: "glint-sweep 1.1s ease-out" }}
+                    />
+                  </div>
+                )}
 
-              {isHovered && (
-                <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                <div className="flex flex-col text-left z-10 pointer-events-none">
+                  <span className="text-white font-semibold text-lg sm:text-xl tracking-wide">
+                    Subir un nuevo video
+                  </span>
+                  <span className="text-zinc-400 text-xs sm:text-sm font-normal mt-1">
+                    Arrastra o haz clic para cargar tu archivo
+                  </span>
+                </div>
+
+                <div className="relative z-10 w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-white/[0.05] border border-white/10 flex items-center justify-center group-hover:bg-indigo-500 group-hover:border-indigo-400 transition-all duration-500">
+                  <svg
+                    className="w-6 h-6 sm:w-8 sm:h-8 text-white group-hover:rotate-90 transition-all duration-500"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2.2}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
+                </div>
+              </button>
+            )}
+
+            {/* Estado: compressing — misma tarjeta, con progreso */}
+            {stage === "compressing" && (
+              <div className="relative w-full h-28 sm:h-32 rounded-2xl bg-white/[0.04] backdrop-blur-2xl flex flex-col justify-center px-8 text-white overflow-hidden">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="font-semibold text-sm sm:text-base tracking-wide">
+                    Comprimiendo video…
+                  </span>
+                  <span className="text-indigo-300 text-xs font-mono">{Math.round(progress)}%</span>
+                </div>
+                <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
                   <div
-                    className="absolute top-0 left-0 h-full w-1/3 bg-gradient-to-r from-transparent via-white/10 to-transparent"
-                    style={{ animation: "glint-sweep 1.1s ease-out" }}
+                    className="h-full bg-indigo-400 transition-all duration-150"
+                    style={{ width: `${progress}%` }}
                   />
                 </div>
-              )}
-
-              <div className="flex flex-col text-left z-10 pointer-events-none">
-                <span className="text-white font-semibold text-lg sm:text-xl tracking-wide">
-                  Subir un nuevo video
-                </span>
-                <span className="text-zinc-400 text-xs sm:text-sm font-normal mt-1">
-                  Arrastra o haz clic para cargar tu archivo
+                <span className="text-zinc-400 text-xs mt-2 font-mono">
+                  original {formatBytes(originalSize)}
                 </span>
               </div>
+            )}
 
-              <div className="relative z-10 w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-white/[0.05] border border-white/10 flex items-center justify-center group-hover:bg-indigo-500 group-hover:border-indigo-400 transition-all duration-500">
-                <svg
-                  className="w-6 h-6 sm:w-8 sm:h-8 text-white group-hover:rotate-90 transition-all duration-500"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2.2}
+            {/* Estado: ready — preview inline dentro de la misma tarjeta */}
+            {stage === "ready" && previewUrl && (
+              <div className="relative w-full rounded-2xl bg-white/[0.04] backdrop-blur-2xl p-4 text-white overflow-hidden">
+                <video src={previewUrl} controls className="w-full rounded-xl bg-black block" />
+                <div className="flex items-center justify-between mt-3 text-xs font-mono text-zinc-400">
+                  <span>
+                    {formatBytes(originalSize)} <span className="text-zinc-600">→</span>{" "}
+                    <span className="text-emerald-400">{formatBytes(compressedSize)}</span>
+                  </span>
+                  <button
+                    onClick={resetUpload}
+                    className="text-zinc-400 hover:text-white underline underline-offset-2 transition-colors cursor-pointer"
+                  >
+                    Cambiar video
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Estado: error */}
+            {stage === "error" && (
+              <div className="relative w-full h-28 sm:h-32 rounded-2xl bg-white/[0.04] backdrop-blur-2xl flex flex-col justify-center px-8 text-white">
+                <span className="text-red-400 font-semibold text-sm sm:text-base">
+                  No se pudo procesar el video
+                </span>
+                <span className="text-zinc-400 text-xs mt-1">{errorMsg}</span>
+                <button
+                  onClick={resetUpload}
+                  className="mt-3 self-start bg-white/10 hover:bg-white/15 border border-white/10 text-xs px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                </svg>
+                  Reintentar
+                </button>
               </div>
-
-            </button>
+            )}
           </div>
 
-          <p className="mt-6 text-slate-400 text-sm md:text-base font-normal tracking-wide text-center max-w-md">
-            Haz clic para subir el video que quieres que <span className="text-white font-semibold">Stlep</span> edite por ti
-          </p>
+          {/* elementos ocultos usados para procesar el video */}
+          <video ref={hiddenVideoRef} className="hidden" playsInline />
+          <canvas ref={hiddenCanvasRef} className="hidden" />
 
+          {stage !== "ready" && (
+            <p className="mt-6 text-slate-400 text-sm md:text-base font-normal tracking-wide text-center max-w-md">
+              Haz clic para subir el video que quieres que <span className="text-white font-semibold">Stlep</span> edite por ti
+            </p>
+          )}
+
+          {/* Campos de contexto — aparecen debajo, en la misma pantalla, una vez que hay preview */}
+          {stage === "ready" && (
+            <div
+              className="w-full mt-5 flex flex-col gap-4"
+              style={{ animation: "fade-slide-up 400ms ease-out" }}
+            >
+              <label className="block bg-white/[0.04] border border-white/10 rounded-2xl backdrop-blur-2xl px-5 py-4">
+                <span className="block text-white text-sm font-semibold mb-2">¿Para qué es el video?</span>
+                <textarea
+                  value={purpose}
+                  onChange={(e) => setPurpose(e.target.value)}
+                  placeholder="Ej: anuncio de Instagram, tutorial interno, clip para un cliente…"
+                  rows={2}
+                  className="w-full bg-transparent border-none outline-none resize-none text-sm text-zinc-200 placeholder:text-zinc-500"
+                />
+              </label>
+
+              <label className="block bg-white/[0.04] border border-white/10 rounded-2xl backdrop-blur-2xl px-5 py-4">
+                <span className="block text-white text-sm font-semibold mb-2">Describí cómo querés que quede</span>
+                <textarea
+                  value={styleNotes}
+                  onChange={(e) => setStyleNotes(e.target.value)}
+                  placeholder="Ej: ritmo rápido, subtítulos grandes, tono cálido, cortes en cada beat…"
+                  rows={3}
+                  className="w-full bg-transparent border-none outline-none resize-none text-sm text-zinc-200 placeholder:text-zinc-500"
+                />
+              </label>
+            </div>
+          )}
         </div>
-
       </div>
 
       {/* 5. Chips inferiores */}
       <div className="w-full px-6 pb-8 z-20 pointer-events-auto flex flex-wrap justify-center items-center gap-4 sm:gap-8 max-w-4xl mx-auto">
-
         <div className="flex items-center gap-2.5 bg-white/[0.04] border border-white/10 px-4 py-2 rounded-xl backdrop-blur-md text-xs sm:text-sm text-slate-300">
           <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
           <span>Formatos: MP4, MOV, 4K+</span>
@@ -348,9 +561,7 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
           <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
           <span>Edición inteligente con IA</span>
         </div>
-
       </div>
-
     </section>
   );
 }

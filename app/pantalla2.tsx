@@ -1,8 +1,6 @@
 "use client";
 
-import { useState, useRef, useMemo } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
-import * as THREE from "three";
+import { useState, useMemo } from "react";
 
 interface Pantalla2Props {
   user: { name: string; avatar: string } | null;
@@ -10,8 +8,7 @@ interface Pantalla2Props {
 }
 
 // ---------------------------------------------------------------------------
-// Starfield: capa fija de puntos tenues que le dan densidad al fondo,
-// sin el parpadeo errático de un sistema de partículas.
+// Starfield: capa fija de puntos tenues que le dan densidad al fondo.
 // ---------------------------------------------------------------------------
 function Starfield() {
   const stars = useMemo(() => {
@@ -51,104 +48,107 @@ function Starfield() {
 }
 
 // ---------------------------------------------------------------------------
-// Cristales facetados: geometría low-poly con flatShading real, así cada
-// cara recibe la luz distinto y se ve tallado en vez de un plano liso.
-// Ocupan todo el cuadro, incluidas las esquinas, con tinte violeta/índigo/azul.
+// TriangleLines: red de líneas finas tipo wireframe, pegada a la pantalla
+// (SVG plano, no un objeto 3D). 3 puntos de origen abren un abanico de
+// líneas hacia distintos puntos del viewport, como en la referencia.
+// Se usa viewBox 0-100 con preserveAspectRatio="none" para que se estire
+// pegada a los bordes en cualquier resolución.
 // ---------------------------------------------------------------------------
-const PALETTE = ["#818cf8", "#a78bfa", "#60a5fa", "#c4b5fd"];
-
-function CrystalField() {
-  const groupRef = useRef<THREE.Group>(null);
-  const count = 18;
-
-  const crystals = useMemo(() => {
-    return Array.from({ length: count }).map((_, i) => {
-      // Distribución que cubre el cuadro completo, incluidas esquinas y bordes,
-      // con distintas profundidades para dar sensación de "lleno" con paralaje.
-      const edgeBias = Math.random() < 0.55;
-      const x = edgeBias
-        ? (Math.random() < 0.5 ? -1 : 1) * (5 + Math.random() * 6)
-        : (Math.random() - 0.5) * 10;
-      const y = edgeBias
-        ? (Math.random() - 0.5) * 9
-        : (Math.random() < 0.5 ? -1 : 1) * (3 + Math.random() * 4);
-
-      return {
-        id: i,
-        basePosition: new THREE.Vector3(x, y, -3 - Math.random() * 9),
-        rotationSpeed: new THREE.Vector3(
-          (Math.random() - 0.5) * 0.25,
-          (Math.random() - 0.5) * 0.25,
-          (Math.random() - 0.5) * 0.2
-        ),
-        floatOffset: Math.random() * Math.PI * 2,
-        floatSpeed: 0.25 + Math.random() * 0.3,
-        scale: 0.4 + Math.random() * 1.1,
-        color: PALETTE[i % PALETTE.length],
-        detail: Math.random() < 0.5 ? 0 : 1,
-      };
-    });
-  }, []);
-
-  useFrame((state, delta) => {
-    if (!groupRef.current) return;
-    const t = state.clock.getElapsedTime();
-
-    const targetX = (state.pointer.x * Math.PI) / 26;
-    const targetY = (state.pointer.y * Math.PI) / 32;
-    groupRef.current.rotation.y = THREE.MathUtils.damp(
-      groupRef.current.rotation.y,
-      targetX + t * 0.01,
-      2,
-      delta
-    );
-    groupRef.current.rotation.x = THREE.MathUtils.damp(
-      groupRef.current.rotation.x,
-      -targetY,
-      2,
-      delta
-    );
-
-    groupRef.current.children.forEach((mesh, i) => {
-      const c = crystals[i];
-      if (!c) return;
-      mesh.position.y = c.basePosition.y + Math.sin(t * c.floatSpeed + c.floatOffset) * 0.4;
-      mesh.rotation.x += c.rotationSpeed.x * delta;
-      mesh.rotation.y += c.rotationSpeed.y * delta;
-      mesh.rotation.z += c.rotationSpeed.z * delta;
-    });
-  });
+function TriangleLines() {
+  const origins = useMemo(
+    () => [
+      {
+        id: "o1",
+        point: { x: 58, y: -6 },
+        targets: [
+          { x: 8, y: 22 },
+          { x: 30, y: 55 },
+          { x: 62, y: 68 },
+          { x: 88, y: 40 },
+          { x: 102, y: 78 },
+        ],
+      },
+      {
+        id: "o2",
+        point: { x: -4, y: 46 },
+        targets: [
+          { x: 22, y: 8 },
+          { x: 40, y: 62 },
+          { x: 12, y: 96 },
+          { x: 58, y: 90 },
+        ],
+      },
+      {
+        id: "o3",
+        point: { x: 104, y: 72 },
+        targets: [
+          { x: 66, y: 34 },
+          { x: 44, y: 78 },
+          { x: 90, y: 12 },
+        ],
+      },
+    ],
+    []
+  );
 
   return (
-    <>
-      <ambientLight intensity={0.4} color="#a5b4fc" />
-      <directionalLight position={[5, 8, 6]} intensity={1.4} color="#e0e7ff" />
-      <pointLight position={[-8, -2, -2]} intensity={1.1} color="#8b5cf6" />
-      <pointLight position={[6, -4, 2]} intensity={0.8} color="#3b82f6" />
-
-      <group ref={groupRef}>
-        {crystals.map((c) => (
-          <mesh key={c.id} position={c.basePosition} scale={c.scale}>
-            <icosahedronGeometry args={[1, c.detail]} />
-            <meshPhysicalMaterial
-              color={c.color}
-              flatShading
-              transmission={0.55}
-              thickness={1.2}
-              roughness={0.15}
-              metalness={0.1}
-              ior={1.5}
-              clearcoat={0.8}
-              clearcoatRoughness={0.2}
-              transparent
-              opacity={0.92}
-              emissive={c.color}
-              emissiveIntensity={0.08}
-            />
-          </mesh>
+    <svg
+      className="absolute inset-0 w-full h-full"
+      viewBox="0 0 100 100"
+      preserveAspectRatio="none"
+    >
+      <defs>
+        <radialGradient id="nodeGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#c4b5fd" stopOpacity="0.9" />
+          <stop offset="100%" stopColor="#c4b5fd" stopOpacity="0" />
+        </radialGradient>
+        {origins.map((o) => (
+          <linearGradient
+            key={`grad-${o.id}`}
+            id={`grad-${o.id}`}
+            gradientUnits="userSpaceOnUse"
+          >
+            <stop offset="0%" stopColor="#a5b4fc" stopOpacity="0.55" />
+            <stop offset="100%" stopColor="#a5b4fc" stopOpacity="0" />
+          </linearGradient>
         ))}
-      </group>
-    </>
+      </defs>
+
+      {origins.map((o) =>
+        o.targets.map((t, i) => (
+          <line
+            key={`${o.id}-${i}`}
+            x1={o.point.x}
+            y1={o.point.y}
+            x2={t.x}
+            y2={t.y}
+            stroke={`url(#grad-${o.id})`}
+            strokeWidth={0.12}
+            vectorEffect="non-scaling-stroke"
+          />
+        ))
+      )}
+
+      {origins.map((o) => (
+        <circle
+          key={`node-${o.id}`}
+          cx={o.point.x}
+          cy={o.point.y}
+          r={6}
+          fill={`url(#nodeGlow)`}
+        />
+      ))}
+      {origins.map((o) => (
+        <circle
+          key={`core-${o.id}`}
+          cx={o.point.x}
+          cy={o.point.y}
+          r={0.5}
+          fill="#e0e7ff"
+          vectorEffect="non-scaling-stroke"
+        />
+      ))}
+    </svg>
   );
 }
 
@@ -188,7 +188,7 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
         }
       `}</style>
 
-      {/* 1. Nebulosa de fondo: llena el cuadro con profundidad de color */}
+      {/* 1. Nebulosa de fondo */}
       <div className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-hidden">
         <div
           className="absolute inset-0"
@@ -202,11 +202,9 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
         <Starfield />
       </div>
 
-      {/* 2. Canvas 3D: cristales facetados llenando el cuadro */}
+      {/* 2. Red de líneas triangulares, pegada a la pantalla */}
       <div className="absolute inset-0 w-full h-full pointer-events-none z-[1]">
-        <Canvas camera={{ position: [0, 0, 11], fov: 58 }}>
-          <CrystalField />
-        </Canvas>
+        <TriangleLines />
       </div>
 
       {/* 3. Header */}

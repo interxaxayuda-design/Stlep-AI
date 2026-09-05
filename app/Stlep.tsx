@@ -154,6 +154,7 @@ export function TechMarquee() {
 
 export function FloatingShapes() {
   const [user, setUser] = useState<{ name: string; avatar: string } | null>(null);
+  const [showInfo, setShowInfo] = useState(false);
 
   const handleLogin = () => {
     // Aquí iría tu lógica real con Firebase Auth
@@ -166,6 +167,35 @@ export function FloatingShapes() {
   return (
     <section className="relative w-full h-screen bg-black overflow-hidden font-sans flex flex-col justify-between select-none">
       
+      {/* Modal de Información (¿Qué es Stlep?) */}
+      {showInfo && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md pointer-events-auto transition-opacity duration-300">
+          <div className="bg-zinc-900/90 border border-white/10 p-8 rounded-3xl shadow-2xl max-w-md w-full relative">
+            <button 
+              onClick={() => setShowInfo(false)}
+              className="absolute top-5 right-5 text-zinc-500 hover:text-white transition-colors cursor-pointer"
+            >
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            
+            <div className="flex items-center gap-4 mb-5">
+              <div className="w-12 h-12 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center">
+                <svg className="w-6 h-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-white tracking-wide">¿Qué es Stlep?</h2>
+            </div>
+            
+            <p className="text-zinc-300 text-base leading-relaxed">
+              Es una app de edición de video avanzada, se encarga de darle dinamismo, retención y entretenimiento, con elementos avanzados de edición de primera generación.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Fondo con Iluminación Ambiental */}
       <div className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-hidden">
         <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[60vw] h-[40vw] rounded-full bg-blue-600/15 blur-[150px]" />
@@ -219,8 +249,19 @@ export function FloatingShapes() {
         
         {/* Link sutil: ¿Qué es Stlep? */}
         <div className="animate-fade-in-up opacity-0 fill-mode-forwards mb-6 pointer-events-auto">
-          <button className="group flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-1.5 rounded-full text-sm font-medium text-zinc-300 hover:text-white hover:bg-white/10 transition-all backdrop-blur-md shadow-lg cursor-pointer">
-            <span className="text-blue-400 group-hover:scale-110 transition-transform duration-300">✨</span> 
+          <button 
+            onClick={() => setShowInfo(true)}
+            className="group flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-1.5 rounded-full text-sm font-medium text-zinc-300 hover:text-white hover:bg-white/10 transition-all backdrop-blur-md shadow-lg cursor-pointer"
+          >
+            {/* Ícono SVG reemplazando al emoji */}
+            <svg 
+              className="w-4 h-4 text-blue-400 group-hover:scale-110 transition-transform duration-300" 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
             ¿Qué es Stlep?
           </button>
         </div>

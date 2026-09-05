@@ -162,17 +162,15 @@ export function FloatingShapes() {
       name: "Usuario",
       avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
     });
-    // Cerrar el modal de info si se inicia sesión desde ahí
     setShowInfo(false);
   };
 
   return (
     <section className="relative w-full h-screen bg-black overflow-hidden font-sans flex flex-col justify-between select-none">
       
-      {/* Modal de Información con Animación de Apertura (Sales Pitch) */}
+      {/* Modal de Información con Animación de Apertura */}
       {showInfo && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md pointer-events-auto">
-          {/* Capa que anima el contenedor (Zoom-in Fade) */}
           <div className="bg-zinc-900/95 border border-white/10 p-8 rounded-3xl shadow-[0_0_80px_rgba(59,130,246,0.15)] max-w-lg w-full relative animate-[scale-in_0.3s_ease-out_forwards] opacity-0 shadow-2xl">
             <style>{`
               @keyframes scale-in {
@@ -211,13 +209,13 @@ export function FloatingShapes() {
               </p>
             </div>
 
-            {/* Botón CTA dentro del Modal */}
+            {/* Botón CTA dentro del Modal con estilo Outline (Sólo líneas blancas) */}
             {!user && (
               <button 
                 onClick={handleLogin}
-                className="mt-8 w-full group flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold text-base px-6 py-3.5 rounded-xl shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:shadow-[0_0_30px_rgba(59,130,246,0.5)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 cursor-pointer"
+                className="mt-8 w-full group flex items-center justify-center gap-2 bg-transparent border border-white/30 text-white font-semibold text-base px-6 py-3.5 rounded-xl hover:bg-white/10 hover:border-white hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 cursor-pointer"
               >
-                <svg className="w-5 h-5" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-white" viewBox="0 0 24 24">
                   <path fill="currentColor" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
                   <path fill="currentColor" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.19v3.15C3.17 21.3 7.25 24 12 24z"/>
                   <path fill="currentColor" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.19C.43 8.1 0 9.8 0 12s.43 3.9 1.19 5.42l4.09-3.15z"/>
@@ -314,13 +312,13 @@ export function FloatingShapes() {
           Una IA avanzada que edita tus videos para hacerlos de lo mejor de lo mejor.
         </p>
 
-        {/* Botón CTA Principal */}
+        {/* Botón CTA Principal en Estilo Outline (Líneas blancas) */}
         <div className="animate-fade-in-up opacity-0 fill-mode-forwards delay-[400ms] mt-10 pointer-events-auto">
           <button 
             onClick={handleLogin}
-            className="group flex items-center gap-3 bg-white text-black font-semibold text-base md:text-lg px-8 py-3.5 rounded-full shadow-[0_0_30px_rgba(255,255,255,0.15)] hover:shadow-[0_0_50px_rgba(255,255,255,0.3)] hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer"
+            className="group flex items-center gap-3 bg-transparent border border-white/30 text-white font-semibold text-base md:text-lg px-8 py-3.5 rounded-full hover:bg-white/10 hover:border-white hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer shadow-lg"
           >
-            <span>Empieza ahora</span>
+            <span>Empezar ya</span>
             <svg 
               className="w-5 h-5 group-hover:translate-x-1.5 transition-transform duration-300" 
               fill="none" 

@@ -7,39 +7,66 @@ interface Pantalla2Props {
   onLogin: () => void;
 }
 
-// ---------------------------------------------------------------------------
-// Starfield: capa fija de puntos tenues que le dan densidad al fondo.
-// ---------------------------------------------------------------------------
 function Starfield() {
   const stars = useMemo(() => {
-    return Array.from({ length: 140 }).map((_, i) => ({
-      id: i,
-      top: `${Math.random() * 100}%`,
-      left: `${Math.random() * 100}%`,
-      size: Math.random() < 0.85 ? 1 : Math.random() < 0.97 ? 2 : 3,
-      opacity: 0.25 + Math.random() * 0.55,
-      duration: `${4 + Math.random() * 5}s`,
-      delay: `${Math.random() * 5}s`,
-      tint: Math.random() < 0.7 ? "#e6e9ff" : Math.random() < 0.85 ? "#c4b5fd" : "#93c5fd",
-    }));
+    return Array.from({ length: 140 }).map((_, i) => {
+      // Puntos aleatorios de llegada para la flotación libre
+      const moveX = (Math.random() - 0.5) * 60; // Desplazamiento horizontal (-30px a +30px)
+      const moveY = (Math.random() - 0.5) * 60; // Desplazamiento vertical (-30px a +30px)
+      const driftTime = 12 + Math.random() * 16; // Duración muy lenta (12s - 28s)
+      const twinkleTime = 3 + Math.random() * 4;
+
+      return {
+        id: i,
+        top: `${Math.random() * 100}%`,
+        left: `${Math.random() * 100}%`,
+        size: Math.random() < 0.85 ? 1 : Math.random() < 0.97 ? 2 : 3,
+        opacity: 0.25 + Math.random() * 0.55,
+        tint: Math.random() < 0.7 ? "#e6e9ff" : Math.random() < 0.85 ? "#c4b5fd" : "#93c5fd",
+        animName: `float-star-${i}`,
+        // Keyframe CSS único generado para cada estrella
+        keyframes: `
+          @keyframes float-star-${i} {
+            0% {
+              transform: translate(0, 0);
+              opacity: ${0.25 + Math.random() * 0.3};
+            }
+            50% {
+              transform: translate(${moveX}px, ${moveY}px);
+              opacity: ${0.6 + Math.random() * 0.4};
+            }
+            100% {
+              transform: translate(0, 0);
+              opacity: ${0.25 + Math.random() * 0.3};
+            }
+          }
+        `,
+        driftDuration: `${driftTime}s`,
+        driftDelay: `${-Math.random() * driftTime}s`, // Delay negativo para que arranquen ya en movimiento
+      };
+    });
   }, []);
 
   return (
-    <div className="absolute inset-0 pointer-events-none">
+    <div className="absolute inset-0 pointer-events-none overflow-hidden">
+      {/* Inyectamos los keyframes de cada estrella */}
+      <style>
+        {stars.map((s) => s.keyframes).join("\n")}
+      </style>
+
       {stars.map((s) => (
         <span
           key={s.id}
-          className="absolute rounded-full"
+          className="absolute rounded-full will-change-transform"
           style={{
             top: s.top,
             left: s.left,
             width: s.size,
             height: s.size,
             backgroundColor: s.tint,
-            opacity: s.opacity,
             boxShadow: s.size > 1 ? `0 0 ${s.size * 2}px ${s.tint}` : "none",
-            animation: `star-twinkle ${s.duration} ease-in-out infinite`,
-            animationDelay: s.delay,
+            animation: `${s.animName} ${s.driftDuration} ease-in-out infinite`,
+            animationDelay: s.driftDelay,
           }}
         />
       ))}
@@ -234,6 +261,10 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
           0%, 100% { opacity: 0.2; }
           50% { opacity: 1; }
         }
+        @keyframes star-drift {
+          0% { transform: translate(0, 0); }
+          100% { transform: translate(var(--drift-x), var(--drift-y)); }
+        }
         @keyframes fade-slide-up {
           from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
@@ -424,11 +455,14 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
               <div className="flex justify-end">
                 <button
                   type="button"
-                  className="group flex items-center gap-2 bg-white text-black font-semibold text-sm px-6 py-3 rounded-full hover:bg-slate-100 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 cursor-pointer"
+                  className="group relative overflow-hidden flex items-center gap-2 bg-white text-black font-semibold text-sm px-6 py-3 rounded-full hover:bg-slate-100 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 cursor-pointer"
                 >
-                  <span>Subir</span>
+                  <span className="absolute inset-0 pointer-events-none overflow-hidden">
+                    <span className="absolute top-0 left-0 h-full w-1/3 bg-gradient-to-r from-transparent via-black/10 to-transparent opacity-0 group-hover:opacity-100 group-hover:animate-[glint-sweep_1s_ease-out]" />
+                  </span>
+                  <span className="relative z-10">Subir</span>
                   <svg
-                    className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300"
+                    className="relative z-10 w-4 h-4 group-hover:translate-x-1 transition-transform duration-300"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"

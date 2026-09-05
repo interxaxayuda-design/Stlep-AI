@@ -79,35 +79,68 @@ function StlepParticleField() {
   );
 }
 
-// Lista de tecnologías que utilizas en tu stack
+// Stack con logos oficiales y nombres reales en SVG/Iconos limpios
 const technologies = [
-  { name: "VS Code", icon: "💻" },
-  { name: "Node.js", icon: "🟢" },
-  { name: "Firebase", icon: "🔥" },
-  { name: "Gemini API", icon: "✨" },
-  { name: "Next.js", icon: "▲" },
-  { name: "React", icon: "⚛️" },
-  { name: "Tailwind CSS", icon: "🎨" },
-  { name: "Vercel", icon: "🚀" },
-  { name: "Three.js", icon: "🌐" }
+  { 
+    name: "VS Code", 
+    svg: "https://api.iconify.design/vscode-icons:file-type-vscode.svg" 
+  },
+  { 
+    name: "Node.js", 
+    svg: "https://api.iconify.design/logos:nodejs-icon.svg" 
+  },
+  { 
+    name: "Firebase", 
+    svg: "https://api.iconify.design/logos:firebase.svg" 
+  },
+  { 
+    name: "Gemini API", 
+    svg: "https://api.iconify.design/logos:google-gemini.svg" 
+  },
+  { 
+    name: "Next.js", 
+    svg: "https://api.iconify.design/logos:nextjs-icon.svg" 
+  },
+  { 
+    name: "React", 
+    svg: "https://api.iconify.design/logos:react.svg" 
+  },
+  { 
+    name: "Tailwind CSS", 
+    svg: "https://api.iconify.design/logos:tailwindcss-icon.svg" 
+  },
+  { 
+    name: "Vercel", 
+    svg: "https://api.iconify.design/logos:vercel-icon.svg" 
+  },
+  { 
+    name: "Three.js", 
+    svg: "https://api.iconify.design/logos:threedotjs.svg" 
+  }
 ];
 
 export function TechMarquee() {
   return (
-    <div className="w-full py-6 border-t border-white/5 bg-black/40 backdrop-blur-md relative overflow-hidden z-20">
-      {/* Degradados laterales para desvanecer el scroll suavemente */}
-      <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-black to-transparent z-10 pointer-events-none" />
-      <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-black to-transparent z-10 pointer-events-none" />
+    <div className="w-full pb-8 pt-4 relative overflow-hidden z-20 pointer-events-auto">
+      {/* Degradados laterales elegantes para difuminar los extremos */}
+      <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-black via-black/80 to-transparent z-10 pointer-events-none" />
+      <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-black via-black/80 to-transparent z-10 pointer-events-none" />
 
       <div className="flex w-full overflow-hidden">
-        <div className="flex animate-marquee gap-14 whitespace-nowrap items-center min-w-full">
+        <div className="flex animate-marquee gap-16 whitespace-nowrap items-center min-w-full">
           {[...technologies, ...technologies, ...technologies].map((tech, index) => (
             <div 
               key={index} 
-              className="flex items-center gap-3 text-zinc-400 hover:text-white transition-colors duration-300 cursor-default select-none"
+              className="flex items-center gap-3 opacity-60 hover:opacity-100 transition-opacity duration-300 cursor-default select-none group"
             >
-              <span className="text-lg opacity-80">{tech.icon}</span>
-              <span className="text-sm font-medium tracking-wide">{tech.name}</span>
+              <img 
+                src={tech.svg} 
+                alt={tech.name} 
+                className="w-6 h-6 object-contain filter grayscale group-hover:grayscale-0 transition-all duration-300" 
+              />
+              <span className="text-sm font-medium tracking-wide text-zinc-400 group-hover:text-zinc-200 transition-colors">
+                {tech.name}
+              </span>
             </div>
           ))}
         </div>
@@ -143,7 +176,7 @@ export function FloatingShapes() {
       </div>
 
       {/* Header Superior Original de Stlep */}
-      <div className="w-full p-6 md:p-10 flex justify-between items-center z-20 animate-fade-in-up">
+      <div className="w-full p-6 md:p-10 flex justify-between items-center z-20">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 rounded-full bg-white/5 border border-white/10 backdrop-blur-xl flex items-center justify-center overflow-hidden shadow-2xl transition-transform hover:scale-105">
             {user ? (
@@ -193,7 +226,7 @@ export function FloatingShapes() {
         </p>
       </div>
 
-      {/* Carrusel a 25 segundos */}
+      {/* Carrusel Integrado Directamente en el Fondo */}
       <TechMarquee />
     </section>
   );

@@ -165,13 +165,7 @@ function TriangleLinesCanvas() {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Compresión de video en cliente (canvas + MediaRecorder, sin dependencias)
-// ---------------------------------------------------------------------------
-const MAX_WIDTH = 854;
-const TARGET_BITRATE = 1_500_000;
-
-type Stage = "idle" | "compressing" | "ready" | "error";
+type Stage = "idle" | "ready" | "error";
 
 function formatBytes(bytes: number) {
   if (!bytes) return "0 B";
@@ -180,114 +174,22 @@ function formatBytes(bytes: number) {
   return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${units[i]}`;
 }
 
-function pickMimeType() {
-  const candidates = ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"];
-  for (const type of candidates) {
-    if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(type)) return type;
-  }
-  return "";
-}
-
 export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
   const [isHovered, setIsHovered] = useState(false);
 
   const [stage, setStage] = useState<Stage>("idle");
-  const [progress, setProgress] = useState(0);
   const [originalSize, setOriginalSize] = useState(0);
-  const [compressedSize, setCompressedSize] = useState(0);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
 
   const [purpose, setPurpose] = useState("");
   const [styleNotes, setStyleNotes] = useState("");
 
-  const hiddenVideoRef = useRef<HTMLVideoElement>(null);
-  const hiddenCanvasRef = useRef<HTMLCanvasElement>(null);
-
-  const compressFile = useCallback((file: File) => {
-    setStage("compressing");
-    setProgress(0);
+  const loadFile = useCallback((file: File) => {
     setErrorMsg("");
     setOriginalSize(file.size);
-    setCompressedSize(0);
-    setPreviewUrl(null);
-
-    const video = hiddenVideoRef.current;
-    const canvas = hiddenCanvasRef.current;
-    if (!video || !canvas) return;
-
-    const objectUrl = URL.createObjectURL(file);
-    video.src = objectUrl;
-    video.volume = 0;
-
-    video.onloadedmetadata = () => {
-      const scale = Math.min(1, MAX_WIDTH / video.videoWidth);
-      const w = Math.round(video.videoWidth * scale);
-      const h = Math.round(video.videoHeight * scale);
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-
-      let canvasStream: MediaStream;
-      try {
-        canvasStream = (canvas as HTMLCanvasElement & { captureStream: (fps?: number) => MediaStream }).captureStream(30);
-      } catch {
-        setStage("error");
-        setErrorMsg("Este navegador no soporta compresión de video en el cliente.");
-        return;
-      }
-
-      const combined = new MediaStream();
-      canvasStream.getVideoTracks().forEach((t) => combined.addTrack(t));
-      const videoWithCapture = video as HTMLVideoElement & { captureStream?: () => MediaStream };
-      const audioStream = videoWithCapture.captureStream ? videoWithCapture.captureStream() : null;
-      audioStream?.getAudioTracks().forEach((t) => combined.addTrack(t));
-
-      const mimeType = pickMimeType();
-      const recorder = new MediaRecorder(combined, { mimeType, videoBitsPerSecond: TARGET_BITRATE });
-      const chunks: BlobPart[] = [];
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunks.push(e.data);
-      };
-      recorder.onstop = () => {
-        const blob = new Blob(chunks, { type: mimeType || "video/webm" });
-        setCompressedSize(blob.size);
-        setPreviewUrl(URL.createObjectURL(blob));
-        setStage("ready");
-        URL.revokeObjectURL(objectUrl);
-      };
-
-      let raf = 0;
-      const draw = () => {
-        if (video.paused || video.ended) return;
-        ctx.drawImage(video, 0, 0, w, h);
-        if (video.duration) setProgress(Math.min(100, (video.currentTime / video.duration) * 100));
-        raf = requestAnimationFrame(draw);
-      };
-
-      video.onended = () => {
-        cancelAnimationFrame(raf);
-        recorder.stop();
-        video.pause();
-      };
-
-      video
-        .play()
-        .then(() => {
-          recorder.start();
-          draw();
-        })
-        .catch(() => {
-          setStage("error");
-          setErrorMsg("No se pudo iniciar la reproducción para comprimir el video.");
-        });
-    };
-
-    video.onerror = () => {
-      setStage("error");
-      setErrorMsg("No se pudo leer el archivo de video.");
-    };
+    setPreviewUrl(URL.createObjectURL(file));
+    setStage("ready");
   }, []);
 
   const handleFileUpload = () => {
@@ -303,17 +205,16 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
         setErrorMsg("Elegí un archivo de video válido.");
         return;
       }
-      compressFile(file);
+      loadFile(file);
     };
     input.click();
   };
 
   const resetUpload = () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
     setStage("idle");
     setPreviewUrl(null);
     setOriginalSize(0);
-    setCompressedSize(0);
-    setProgress(0);
   };
 
   return (
@@ -453,36 +354,12 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
               </button>
             )}
 
-            {/* Estado: compressing — misma tarjeta, con progreso */}
-            {stage === "compressing" && (
-              <div className="relative w-full h-28 sm:h-32 rounded-2xl bg-white/[0.04] backdrop-blur-2xl flex flex-col justify-center px-8 text-white overflow-hidden">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="font-semibold text-sm sm:text-base tracking-wide">
-                    Comprimiendo video…
-                  </span>
-                  <span className="text-indigo-300 text-xs font-mono">{Math.round(progress)}%</span>
-                </div>
-                <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
-                  <div
-                    className="h-full bg-indigo-400 transition-all duration-150"
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
-                <span className="text-zinc-400 text-xs mt-2 font-mono">
-                  original {formatBytes(originalSize)}
-                </span>
-              </div>
-            )}
-
             {/* Estado: ready — preview inline dentro de la misma tarjeta */}
             {stage === "ready" && previewUrl && (
               <div className="relative w-full rounded-2xl bg-white/[0.04] backdrop-blur-2xl p-4 text-white overflow-hidden">
                 <video src={previewUrl} controls className="w-full rounded-xl bg-black block" />
                 <div className="flex items-center justify-between mt-3 text-xs font-mono text-zinc-400">
-                  <span>
-                    {formatBytes(originalSize)} <span className="text-zinc-600">→</span>{" "}
-                    <span className="text-emerald-400">{formatBytes(compressedSize)}</span>
-                  </span>
+                  <span>{formatBytes(originalSize)}</span>
                   <button
                     onClick={resetUpload}
                     className="text-zinc-400 hover:text-white underline underline-offset-2 transition-colors cursor-pointer"
@@ -509,10 +386,6 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
               </div>
             )}
           </div>
-
-          {/* elementos ocultos usados para procesar el video */}
-          <video ref={hiddenVideoRef} className="hidden" playsInline />
-          <canvas ref={hiddenCanvasRef} className="hidden" />
 
           {stage !== "ready" && (
             <p className="mt-6 text-slate-400 text-sm md:text-base font-normal tracking-wide text-center max-w-md">

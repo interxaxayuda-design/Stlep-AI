@@ -3,6 +3,8 @@
 import { Canvas, useFrame } from "@react-three/fiber";
 import { useRef, useMemo, useState } from "react";
 import * as THREE from "three";
+import { signInWithPopup } from "firebase/auth";
+import { auth, googleProvider } from "./lib/firebase";
 
 // Campo de partículas con relieve 3D real
 function StlepParticleField() {
@@ -156,12 +158,19 @@ export function FloatingShapes() {
   const [user, setUser] = useState<{ name: string; avatar: string } | null>(null);
   const [showInfo, setShowInfo] = useState(false);
 
-  const handleLogin = () => {
-    setUser({
-      name: "Usuario",
-      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
-    });
-    setShowInfo(false);
+  const handleLogin = async () => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const loggedUser = result.user;
+      
+      setUser({
+        name: loggedUser.displayName || "Usuario",
+        avatar: loggedUser.photoURL || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
+      });
+      setShowInfo(false);
+    } catch (error) {
+      console.error("Error al iniciar sesión con Google:", error);
+    }
   };
 
   return (

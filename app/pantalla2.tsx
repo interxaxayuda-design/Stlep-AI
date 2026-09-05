@@ -420,6 +420,23 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
                   className="w-full bg-transparent border-none outline-none resize-none text-sm text-zinc-200 placeholder:text-zinc-500"
                 />
               </label>
+
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  className="group flex items-center gap-2 bg-white text-black font-semibold text-sm px-6 py-3 rounded-full hover:bg-slate-100 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 cursor-pointer"
+                >
+                  <span>Subir</span>
+                  <svg
+                    className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                </button>
+              </div>
             </div>
           )}
         </div>

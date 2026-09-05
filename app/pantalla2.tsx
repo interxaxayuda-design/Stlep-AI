@@ -337,6 +337,13 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
           from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
         }
+        .no-scrollbar {
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
       `}</style>
 
       {/* 1. Nebulosa de fondo */}
@@ -392,7 +399,7 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
       </div>
 
       {/* 4. Contenido central */}
-      <div className="flex-1 flex flex-col items-center justify-center z-10 px-6 pointer-events-none">
+      <div className="flex-1 flex flex-col items-center justify-center z-10 px-6 py-8 pointer-events-none overflow-y-auto no-scrollbar">
 
         <h1 className="font-display text-5xl md:text-7xl font-extrabold text-center tracking-tight mb-10 text-white drop-shadow-[0_0_40px_rgba(139,92,246,0.25)]">
           Empieza a delegar

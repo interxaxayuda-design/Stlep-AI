@@ -2,6 +2,7 @@
 
 import { Canvas, useFrame } from "@react-three/fiber";
 import Pantalla2 from "./pantalla2";
+import Bienvenida from "./bienvenida";
 import { useRef, useMemo, useState } from "react";
 import * as THREE from "three";
 import { signInWithPopup } from "firebase/auth";
@@ -158,6 +159,7 @@ export function TechMarquee() {
 export function FloatingShapes() {
   const [user, setUser] = useState<{ name: string; avatar: string } | null>(null);
   const [showInfo, setShowInfo] = useState(false);
+  const [screen, setScreen] = useState<"landing" | "bienvenida" | "pantalla2">("landing");
 
   const handleLogin = async () => {
     try {
@@ -169,14 +171,40 @@ export function FloatingShapes() {
         avatar: loggedUser.photoURL || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
       });
       setShowInfo(false);
+      setScreen("bienvenida");
     } catch (error) {
       console.error("Error al iniciar sesión con Google:", error);
     }
   };
 
-  // Transición a la Pantalla 2 tras el inicio de sesión
-  if (user) {
-    return <Pantalla2 user={user} onLogin={handleLogin} />;
+  // Bienvenida, luego Pantalla2 — cada cambio de "screen" remonta el wrapper
+  // de abajo y dispara su fade de entrada.
+  if (screen === "bienvenida" && user) {
+    return (
+      <div key="bienvenida" className="animate-[screen-fade-in_700ms_ease-out]">
+        <style>{`
+          @keyframes screen-fade-in {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+        `}</style>
+        <Bienvenida user={user} onComplete={() => setScreen("pantalla2")} />
+      </div>
+    );
+  }
+
+  if (screen === "pantalla2" && user) {
+    return (
+      <div key="pantalla2" className="animate-[screen-fade-in_700ms_ease-out]">
+        <style>{`
+          @keyframes screen-fade-in {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+        `}</style>
+        <Pantalla2 user={user} onLogin={handleLogin} />
+      </div>
+    );
   }
 
   return (

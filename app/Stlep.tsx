@@ -79,7 +79,7 @@ function StlepParticleField() {
   );
 }
 
-// Stack con logos oficiales y nombres reales en SVG/Iconos limpios
+// Stack con logos oficiales corregidos y Database incluido
 const technologies = [
   { 
     name: "VS Code", 
@@ -114,8 +114,12 @@ const technologies = [
     svg: "https://api.iconify.design/logos:vercel-icon.svg" 
   },
   { 
+    name: "Database", 
+    svg: "https://api.iconify.design/vscode-icons:file-type-sql.svg" 
+  },
+  { 
     name: "Three.js", 
-    svg: "https://api.iconify.design/logos:threedotjs.svg" 
+    svg: "https://api.iconify.design/logos:threejs.svg" 
   }
 ];
 
@@ -226,7 +230,7 @@ export function FloatingShapes() {
         </p>
       </div>
 
-      {/* Carrusel Integrado Directamente en el Fondo */}
+      {/* Carrusel Integrado */}
       <TechMarquee />
     </section>
   );

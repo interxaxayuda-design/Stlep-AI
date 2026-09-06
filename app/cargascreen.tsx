@@ -73,32 +73,22 @@ export default function CargaScreen() {
           50% { opacity: 1; }
         }
         @keyframes glow-drift {
-          0%, 100% { transform: translate3d(-4%, -2%, 0) scale(1); }
-          50% { transform: translate3d(4%, 3%, 0) scale(1.12); }
+          0%, 100% { transform: translate3d(-4%, 0, 0) scale(1); }
+          50% { transform: translate3d(4%, 0, 0) scale(1.06); }
         }
       `}</style>
 
-      {/* Nebulosa de fondo: base estática (barata) + un blob que se mueve
-          únicamente con transform (GPU), así el navegador nunca recalcula
-          el degradado ni el blur cuadro a cuadro — solo traslada un bitmap
-          ya pintado. Eso es lo que evita el lag. */}
+      {/* Nebulosa de fondo: una aurora ancha y fija arriba (como la referencia),
+          que solo se mueve con transform (GPU) — nunca hacia abajo, nunca
+          recalculando el gradiente. */}
       <div className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-hidden">
         <div
-          className="absolute inset-0"
+          className="absolute left-1/2 -top-[18%] -translate-x-1/2 w-[160vw] h-[45vh] min-h-[320px] rounded-[50%] will-change-transform"
           style={{
             background:
-              "radial-gradient(ellipse 70% 60% at 20% 100%, rgba(40,50,140,0.3) 0%, transparent 60%), " +
-              "radial-gradient(ellipse 60% 50% at 85% 80%, rgba(90,50,160,0.25) 0%, transparent 60%), " +
-              "rgba(5,5,16,0.9)",
-          }}
-        />
-        <div
-          className="absolute left-1/2 top-[-10%] w-[85vw] h-[85vw] max-w-[900px] max-h-[900px] -translate-x-1/2 rounded-full will-change-transform"
-          style={{
-            background:
-              "radial-gradient(closest-side, rgba(96,110,230,0.45) 0%, rgba(88,60,150,0.28) 45%, transparent 75%)",
-            filter: "blur(60px)",
-            animation: "glow-drift 12s ease-in-out infinite",
+              "radial-gradient(closest-side, rgba(99,140,255,0.55) 0%, rgba(80,90,220,0.32) 45%, transparent 75%)",
+            filter: "blur(70px)",
+            animation: "glow-drift 14s ease-in-out infinite",
           }}
         />
         <Starfield />

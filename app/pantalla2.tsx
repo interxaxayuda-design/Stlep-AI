@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import CargaScreen from "./cargascreen";
 
 interface Pantalla2Props {
   user: { name: string; avatar: string } | null;
@@ -212,6 +213,8 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
   const [purpose, setPurpose] = useState("");
   const [styleNotes, setStyleNotes] = useState("");
 
+  const [showLoading, setShowLoading] = useState(false);
+
   const loadFile = useCallback((file: File) => {
     setErrorMsg("");
     setOriginalSize(file.size);
@@ -243,6 +246,25 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
     setPreviewUrl(null);
     setOriginalSize(0);
   };
+
+  const handleSubmit = () => {
+    setShowLoading(true);
+  };
+
+  // Pantalla de carga tras tocar "Subir" — reemplaza esta pantalla con fade.
+  if (showLoading) {
+    return (
+      <div className="animate-[screen-fade-in_600ms_ease-out]">
+        <style>{`
+          @keyframes screen-fade-in {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+        `}</style>
+        <CargaScreen />
+      </div>
+    );
+  }
 
   return (
     <section className="relative w-full h-screen overflow-hidden font-sans flex flex-col justify-between select-none bg-[#050510]">
@@ -455,6 +477,7 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
               <div className="flex justify-end">
                 <button
                   type="button"
+                  onClick={handleSubmit}
                   className="group relative overflow-hidden flex items-center gap-2 bg-white text-black font-semibold text-sm px-6 py-3 rounded-full hover:bg-slate-100 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 cursor-pointer"
                 >
                   <span className="absolute inset-0 pointer-events-none overflow-hidden">

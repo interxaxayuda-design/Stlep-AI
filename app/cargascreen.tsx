@@ -16,9 +16,9 @@ function Starfield() {
       opacity: 0.25 + Math.random() * 0.55,
       duration: `${4 + Math.random() * 5}s`,
       delay: `${Math.random() * 5}s`,
-      driftX: `${(Math.random() - 0.5) * 40}px`,
-      driftY: `${(Math.random() - 0.5) * 40}px`,
-      driftDuration: `${18 + Math.random() * 22}s`,
+      driftX: `${(Math.random() - 0.5) * 90}px`,
+      driftY: `${(Math.random() - 0.5) * 90}px`,
+      driftDuration: `${10 + Math.random() * 14}s`,
       driftDelay: `${Math.random() * -30}s`,
       tint: Math.random() < 0.7 ? "#e6e9ff" : Math.random() < 0.85 ? "#c4b5fd" : "#93c5fd",
     }));
@@ -72,17 +72,33 @@ export default function CargaScreen() {
           0%, 100% { opacity: 0.55; }
           50% { opacity: 1; }
         }
+        @keyframes glow-drift {
+          0%, 100% { transform: translate3d(-4%, -2%, 0) scale(1); }
+          50% { transform: translate3d(4%, 3%, 0) scale(1.12); }
+        }
       `}</style>
 
-      {/* Nebulosa de fondo, mismo criterio que Pantalla2 */}
+      {/* Nebulosa de fondo: base estática (barata) + un blob que se mueve
+          únicamente con transform (GPU), así el navegador nunca recalcula
+          el degradado ni el blur cuadro a cuadro — solo traslada un bitmap
+          ya pintado. Eso es lo que evita el lag. */}
       <div className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-hidden">
         <div
           className="absolute inset-0"
           style={{
             background:
-              "radial-gradient(ellipse 90% 70% at 50% 0%, rgba(88,60,150,0.35) 0%, rgba(30,20,70,0.25) 35%, rgba(5,5,16,0.9) 70%), " +
               "radial-gradient(ellipse 70% 60% at 20% 100%, rgba(40,50,140,0.3) 0%, transparent 60%), " +
-              "radial-gradient(ellipse 60% 50% at 85% 80%, rgba(90,50,160,0.25) 0%, transparent 60%)",
+              "radial-gradient(ellipse 60% 50% at 85% 80%, rgba(90,50,160,0.25) 0%, transparent 60%), " +
+              "rgba(5,5,16,0.9)",
+          }}
+        />
+        <div
+          className="absolute left-1/2 top-[-10%] w-[85vw] h-[85vw] max-w-[900px] max-h-[900px] -translate-x-1/2 rounded-full will-change-transform"
+          style={{
+            background:
+              "radial-gradient(closest-side, rgba(96,110,230,0.45) 0%, rgba(88,60,150,0.28) 45%, transparent 75%)",
+            filter: "blur(60px)",
+            animation: "glow-drift 12s ease-in-out infinite",
           }}
         />
         <Starfield />

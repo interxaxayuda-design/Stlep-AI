@@ -72,23 +72,37 @@ export default function CargaScreen() {
           0%, 100% { opacity: 0.55; }
           50% { opacity: 1; }
         }
-        @keyframes glow-drift {
-          0%, 100% { transform: translate3d(-4%, 0, 0) scale(1); }
-          50% { transform: translate3d(4%, 0, 0) scale(1.06); }
+        @keyframes glow-drift-a {
+          0%, 100% { transform: translate3d(-6%, -3%, 0) scale(1); }
+          50% { transform: translate3d(4%, 4%, 0) scale(1.1); }
+        }
+        @keyframes glow-drift-b {
+          0%, 100% { transform: translate3d(5%, 2%, 0) scale(1.05); }
+          50% { transform: translate3d(-5%, -4%, 0) scale(0.95); }
         }
       `}</style>
 
-      {/* Nebulosa de fondo: una aurora ancha y fija arriba (como la referencia),
-          que solo se mueve con transform (GPU) — nunca hacia abajo, nunca
-          recalculando el gradiente. */}
+      {/* Nebulosa de fondo: dos manchas de color descentradas y superpuestas
+          (azul + verde-azulado), cada una moviéndose por separado solo con
+          transform (GPU) — igual criterio de performance, pero con la forma
+          orgánica y desparejo de la referencia, no una franja uniforme. */}
       <div className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-hidden">
         <div
-          className="absolute left-1/2 -top-[18%] -translate-x-1/2 w-[160vw] h-[45vh] min-h-[320px] rounded-[50%] will-change-transform"
+          className="absolute -top-[15%] left-[8%] w-[75vw] h-[75vw] max-w-[760px] max-h-[760px] rounded-full will-change-transform"
           style={{
             background:
-              "radial-gradient(closest-side, rgba(99,140,255,0.55) 0%, rgba(80,90,220,0.32) 45%, transparent 75%)",
-            filter: "blur(70px)",
-            animation: "glow-drift 14s ease-in-out infinite",
+              "radial-gradient(closest-side, rgba(88,120,255,0.55) 0%, rgba(70,90,220,0.3) 45%, transparent 72%)",
+            filter: "blur(90px)",
+            animation: "glow-drift-a 16s ease-in-out infinite",
+          }}
+        />
+        <div
+          className="absolute -top-[5%] right-[4%] w-[60vw] h-[60vw] max-w-[600px] max-h-[600px] rounded-full will-change-transform"
+          style={{
+            background:
+              "radial-gradient(closest-side, rgba(45,180,170,0.4) 0%, rgba(45,120,150,0.22) 45%, transparent 72%)",
+            filter: "blur(90px)",
+            animation: "glow-drift-b 19s ease-in-out infinite",
           }}
         />
         <Starfield />

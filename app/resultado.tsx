@@ -82,6 +82,13 @@ export default function Resultado({ videoUrl }: ResultadoProps) {
           from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
         }
+        .no-scrollbar {
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
       `}</style>
 
       {/* Fondo quieto: una sola mancha suave, sin animación */}
@@ -97,33 +104,36 @@ export default function Resultado({ videoUrl }: ResultadoProps) {
         <Starfield />
       </div>
 
-      {/* Contenido central */}
-      <div
-        className="relative z-10 flex flex-col items-center px-6 text-center w-full max-w-[420px] sm:max-w-[480px]"
-        style={{ animation: "fade-slide-up 500ms ease-out" }}
-      >
-        <span className="text-xs font-medium tracking-[0.2em] uppercase text-indigo-300/70 mb-3">
-          Listo
-        </span>
-
-        <h1 className="font-display text-2xl md:text-3xl font-semibold text-white tracking-tight mb-8">
-          Tu video está listo
-        </h1>
-
-        <div className="w-full rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-2xl p-4">
-          <video src={videoUrl} controls className="w-full rounded-xl bg-black block" />
-        </div>
-
-        <button
-          type="button"
-          onClick={handleDownload}
-          className="mt-8 flex items-center gap-2 bg-white text-black font-semibold text-sm px-7 py-3 rounded-full hover:bg-slate-100 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 cursor-pointer"
+      {/* Contenedor con scroll propio: si el video + botón no entran en la
+          altura de la pantalla, se puede bajar, sin mostrar la barra. */}
+      <div className="relative z-10 w-full h-full overflow-y-auto no-scrollbar flex flex-col items-center justify-center px-6 py-10">
+        <div
+          className="flex flex-col items-center text-center w-full max-w-[420px] sm:max-w-[480px]"
+          style={{ animation: "fade-slide-up 500ms ease-out" }}
         >
-          <span>Descargar</span>
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M12 4v12m0 0l-4-4m4 4l4-4M5 20h14" />
-          </svg>
-        </button>
+          <span className="text-xs font-medium tracking-[0.2em] uppercase text-indigo-300/70 mb-3">
+            Listo
+          </span>
+
+          <h1 className="font-display text-2xl md:text-3xl font-semibold text-white tracking-tight mb-8">
+            Tu video está listo
+          </h1>
+
+          <div className="w-full rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-2xl p-4">
+            <video src={videoUrl} controls className="w-full rounded-xl bg-black block" />
+          </div>
+
+          <button
+            type="button"
+            onClick={handleDownload}
+            className="mt-8 flex items-center gap-2 bg-white text-black font-semibold text-sm px-7 py-3 rounded-full hover:bg-slate-100 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 cursor-pointer"
+          >
+            <span>Descargar</span>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M12 4v12m0 0l-4-4m4 4l4-4M5 20h14" />
+            </svg>
+          </button>
+        </div>
       </div>
     </section>
   );

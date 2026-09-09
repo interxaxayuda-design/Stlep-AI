@@ -1,6 +1,11 @@
 "use client";
 
-import { useMemo, type CSSProperties } from "react";
+import { useEffect, useMemo, type CSSProperties } from "react";
+
+interface CargaScreenProps {
+  onComplete?: () => void;
+  durationMs?: number;
+}
 
 // ---------------------------------------------------------------------------
 // Starfield: misma capa de estrellas con deriva lenta que en las otras
@@ -51,7 +56,13 @@ function Starfield() {
   );
 }
 
-export default function CargaScreen() {
+export default function CargaScreen({ onComplete, durationMs = 5000 }: CargaScreenProps) {
+  useEffect(() => {
+    if (!onComplete) return;
+    const timer = setTimeout(onComplete, durationMs);
+    return () => clearTimeout(timer);
+  }, [onComplete, durationMs]);
+
   return (
     <section className="relative w-full h-screen overflow-hidden font-sans flex flex-col items-center justify-center select-none bg-[#050510]">
 

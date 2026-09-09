@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import CargaScreen from "./cargascreen";
+import Resultado from "./resultado";
 
 interface Pantalla2Props {
   user: { name: string; avatar: string } | null;
@@ -214,6 +215,7 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
   const [styleNotes, setStyleNotes] = useState("");
 
   const [showLoading, setShowLoading] = useState(false);
+  const [showResultado, setShowResultado] = useState(false);
 
   const loadFile = useCallback((file: File) => {
     setErrorMsg("");
@@ -252,6 +254,7 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
   };
 
   // Pantalla de carga tras tocar "Subir" — reemplaza esta pantalla con fade.
+  // A los 5s, pasa sola a la pantalla de resultado.
   if (showLoading) {
     return (
       <div className="animate-[screen-fade-in_600ms_ease-out]">
@@ -261,7 +264,27 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
             to { opacity: 1; }
           }
         `}</style>
-        <CargaScreen />
+        <CargaScreen
+          onComplete={() => {
+            setShowLoading(false);
+            setShowResultado(true);
+          }}
+        />
+      </div>
+    );
+  }
+
+  // Pantalla de resultado: mismo video que se subió, con botón de descargar.
+  if (showResultado && previewUrl) {
+    return (
+      <div className="animate-[screen-fade-in_600ms_ease-out]">
+        <style>{`
+          @keyframes screen-fade-in {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+        `}</style>
+        <Resultado videoUrl={previewUrl} />
       </div>
     );
   }

@@ -4,6 +4,8 @@ import { useMemo, type CSSProperties } from "react";
 
 interface ResultadoProps {
   videoUrl: string;
+  decisiones: any[];
+
 }
 
 // ---------------------------------------------------------------------------

@@ -12,10 +12,9 @@ interface Pantalla2Props {
 function Starfield() {
   const stars = useMemo(() => {
     return Array.from({ length: 140 }).map((_, i) => {
-      // Puntos aleatorios de llegada para la flotación libre
-      const moveX = (Math.random() - 0.5) * 60; // Desplazamiento horizontal (-30px a +30px)
-      const moveY = (Math.random() - 0.5) * 60; // Desplazamiento vertical (-30px a +30px)
-      const driftTime = 12 + Math.random() * 16; // Duración muy lenta (12s - 28s)
+      const moveX = (Math.random() - 0.5) * 60;
+      const moveY = (Math.random() - 0.5) * 60;
+      const driftTime = 12 + Math.random() * 16;
       const twinkleTime = 3 + Math.random() * 4;
 
       return {
@@ -26,7 +25,6 @@ function Starfield() {
         opacity: 0.25 + Math.random() * 0.55,
         tint: Math.random() < 0.7 ? "#e6e9ff" : Math.random() < 0.85 ? "#c4b5fd" : "#93c5fd",
         animName: `float-star-${i}`,
-        // Keyframe CSS único generado para cada estrella
         keyframes: `
           @keyframes float-star-${i} {
             0% {
@@ -44,14 +42,13 @@ function Starfield() {
           }
         `,
         driftDuration: `${driftTime}s`,
-        driftDelay: `${-Math.random() * driftTime}s`, // Delay negativo para que arranquen ya en movimiento
+        driftDelay: `${-Math.random() * driftTime}s`,
       };
     });
   }, []);
 
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden">
-      {/* Inyectamos los keyframes de cada estrella */}
       <style>
         {stars.map((s) => s.keyframes).join("\n")}
       </style>
@@ -76,10 +73,6 @@ function Starfield() {
   );
 }
 
-// ---------------------------------------------------------------------------
-// TriangleLinesCanvas: red de líneas finas tipo wireframe, dibujada en
-// <canvas> con coordenadas ya convertidas a píxeles reales del viewport.
-// ---------------------------------------------------------------------------
 const ORIGINS = [
   {
     id: "o1",
@@ -213,6 +206,7 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
 
   const [purpose, setPurpose] = useState("");
   const [styleNotes, setStyleNotes] = useState("");
+  const [decisiones, setDecisiones] = useState<any[]>([]);
 
   const [showLoading, setShowLoading] = useState(false);
   const [showResultado, setShowResultado] = useState(false);
@@ -247,14 +241,39 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
     setStage("idle");
     setPreviewUrl(null);
     setOriginalSize(0);
+    setDecisiones([]);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setShowLoading(true);
+
+    const promptCompleto = `Propósito del video: ${purpose}. Instrucciones de edición: ${styleNotes}`;
+
+    try {
+      const response = await fetch("/api/editar", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          promptUsuario: promptCompleto,
+          videoUrl: previewUrl,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.ok) {
+        console.log("🛠️ Decisiones tomadas por Gemini:", data.decisiones);
+        setDecisiones(data.decisiones);
+      } else {
+        console.error("Error devuelto por la API:", data.error);
+      }
+    } catch (error) {
+      console.error("Error de red al consultar /api/editar:", error);
+    }
   };
 
-  // Pantalla de carga tras tocar "Subir" — reemplaza esta pantalla con fade.
-  // A los 5s, pasa sola a la pantalla de resultado.
   if (showLoading) {
     return (
       <div className="animate-[screen-fade-in_600ms_ease-out]">
@@ -274,7 +293,6 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
     );
   }
 
-  // Pantalla de resultado: mismo video que se subió, con botón de descargar.
   if (showResultado && previewUrl) {
     return (
       <div className="animate-[screen-fade-in_600ms_ease-out]">
@@ -284,14 +302,13 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
             to { opacity: 1; }
           }
         `}</style>
-        <Resultado videoUrl={previewUrl} />
+        <Resultado videoUrl={previewUrl} decisiones={decisiones} />
       </div>
     );
   }
 
   return (
     <section className="relative w-full h-screen overflow-hidden font-sans flex flex-col justify-between select-none bg-[#050510]">
-
       <style>{`
         @keyframes pulse-ring {
           0% { transform: scale(0.95); opacity: 0.6; }
@@ -337,7 +354,7 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
         <Starfield />
       </div>
 
-      {/* 2. Red de líneas triangulares, dibujada en canvas */}
+      {/* 2. Red de líneas triangulares */}
       <div className="absolute inset-0 w-full h-full pointer-events-none z-[1]">
         <TriangleLinesCanvas />
       </div>
@@ -377,20 +394,16 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
 
       {/* 4. Contenido central */}
       <div className="flex-1 flex flex-col items-center justify-center z-10 px-6 py-8 pointer-events-none overflow-y-auto no-scrollbar">
-
         <h1 className="font-display text-5xl md:text-7xl font-extrabold text-center tracking-tight mb-10 text-white drop-shadow-[0_0_40px_rgba(139,92,246,0.25)]">
           Empieza a delegar
         </h1>
 
         <div className="pointer-events-auto relative flex flex-col items-center">
-
           {stage !== "ready" && (
             <div className="absolute -inset-4 rounded-3xl bg-indigo-500/15 blur-xl animate-[pulse-ring_4s_ease-in-out_infinite] pointer-events-none" />
           )}
 
           <div className="relative group rounded-2xl border border-white/10 hover:border-indigo-400/40 transition-colors duration-500 w-[300px] sm:w-[420px] md:w-[480px]">
-
-            {/* Estado: idle — botón original */}
             {stage === "idle" && (
               <button
                 onClick={handleFileUpload}
@@ -430,7 +443,6 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
               </button>
             )}
 
-            {/* Estado: ready — preview inline dentro de la misma tarjeta */}
             {stage === "ready" && previewUrl && (
               <div className="relative w-full rounded-2xl bg-white/[0.04] backdrop-blur-2xl p-4 text-white overflow-hidden">
                 <video src={previewUrl} controls className="w-full rounded-xl bg-black block" />
@@ -446,7 +458,6 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
               </div>
             )}
 
-            {/* Estado: error */}
             {stage === "error" && (
               <div className="relative w-full h-28 sm:h-32 rounded-2xl bg-white/[0.04] backdrop-blur-2xl flex flex-col justify-center px-8 text-white">
                 <span className="text-red-400 font-semibold text-sm sm:text-base">
@@ -469,7 +480,6 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
             </p>
           )}
 
-          {/* Campos de contexto — aparecen debajo, en la misma pantalla, una vez que hay preview */}
           {stage === "ready" && (
             <div
               className="w-full mt-5 flex flex-col gap-4"

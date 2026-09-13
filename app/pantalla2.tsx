@@ -245,53 +245,51 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
   };
 
   const handleSubmit = async () => {
-    setShowLoading(true);
+  setShowLoading(true);
 
-    const promptCompleto = `Propósito del video: ${purpose}. Instrucciones de edición: ${styleNotes}`;
+  const promptCompleto = `Propósito del video: ${purpose}. Instrucciones de edición: ${styleNotes}`;
 
-    try {
-      const response = await fetch("/api/editar", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          promptUsuario: promptCompleto,
-          videoUrl: previewUrl,
-        }),
-      });
+  try {
+    const response = await fetch("/api/editar", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        promptUsuario: promptCompleto,
+        videoUrl: previewUrl,
+      }),
+    });
 
-      const data = await response.json();
+    const data = await response.json();
 
-      if (data.ok) {
-        console.log("🛠️ Decisiones tomadas por Gemini:", data.decisiones);
-        setDecisiones(data.decisiones);
-      } else {
-        console.error("Error devuelto por la API:", data.error);
-      }
-    } catch (error) {
-      console.error("Error de red al consultar /api/editar:", error);
+    if (data.ok) {
+      console.log("🛠️ Decisiones tomadas por Gemini:", data.decisiones);
+      setDecisiones(data.decisiones);
+    } else {
+      console.error("Error devuelto por la API:", data.error);
     }
-  };
+  } catch (error) {
+    console.error("Error de red al consultar /api/editar:", error);
+  } finally {
+    setShowLoading(false);
+    setShowResultado(true);
+  }
+};
 
   if (showLoading) {
-    return (
-      <div className="animate-[screen-fade-in_600ms_ease-out]">
-        <style>{`
-          @keyframes screen-fade-in {
-            from { opacity: 0; }
-            to { opacity: 1; }
-          }
-        `}</style>
-        <CargaScreen
-          onComplete={() => {
-            setShowLoading(false);
-            setShowResultado(true);
-          }}
-        />
-      </div>
-    );
-  }
+  return (
+    <div className="animate-[screen-fade-in_600ms_ease-out]">
+      <style>{`
+        @keyframes screen-fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+      `}</style>
+      <CargaScreen />
+    </div>
+  );
+}
 
   if (showResultado && previewUrl) {
     return (

@@ -2,7 +2,7 @@ import "server-only";
 
 import { GoogleGenAI, Type, Tool } from "@google/genai";
 
-export const MODEL = "gemini-3.1-flash";
+export const MODEL = "gemini-3.5-flash";
 export const MEDIA_RESOLUTION = "low";
 
 export function getGeminiClient() {
@@ -10,7 +10,7 @@ export function getGeminiClient() {
   if (!apiKey) {
     throw new Error(
       "Falta GEMINI_API_KEY en las variables de entorno (revisá .env.local)"
-    ); //
+    );
   }
   return new GoogleGenAI({ apiKey });
 }

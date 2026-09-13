@@ -1,6 +1,6 @@
 import "server-only";
 
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type, Tool } from "@google/genai";
 
 export const MODEL = "gemini-3.1-flash";
 export const MEDIA_RESOLUTION = "low";
@@ -10,7 +10,7 @@ export function getGeminiClient() {
   if (!apiKey) {
     throw new Error(
       "Falta GEMINI_API_KEY en las variables de entorno (revisá .env.local)"
-    );
+    ); //
   }
   return new GoogleGenAI({ apiKey });
 }
@@ -24,7 +24,7 @@ Si el pedido es ambiguo, elegí la interpretación más razonable y avisá
 brevemente qué decidiste.
 `.trim();
 
-export const TOOLS = [
+export const TOOLS: Tool[] = [
   {
     functionDeclarations: [
       {

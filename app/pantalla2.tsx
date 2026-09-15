@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import CargaScreen from "./cargascreen";
 import Resultado from "./resultado";
+import { subirVideoAStorage } from "./uploadVideo"; // ajustá el path si uploadVideo.ts está en otra carpeta
 
 interface Pantalla2Props {
   user: { name: string; avatar: string } | null;
@@ -202,11 +203,14 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
   const [stage, setStage] = useState<Stage>("idle");
   const [originalSize, setOriginalSize] = useState(0);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [videoFile, setVideoFile] = useState<File | null>(null); // 👈 NUEVO: el File real, para subir
   const [errorMsg, setErrorMsg] = useState("");
 
   const [purpose, setPurpose] = useState("");
   const [styleNotes, setStyleNotes] = useState("");
-  const [decisiones, setDecisiones] = useState<any[]>([]);
+
+  const [videoEditado, setVideoEditado] = useState<string | null>(null); // 👈 NUEVO: resultado real de la API
+  const [errorApi, setErrorApi] = useState<string | null>(null); // 👈 NUEVO: para mostrar si algo falla
 
   const [showLoading, setShowLoading] = useState(false);
   const [showResultado, setShowResultado] = useState(false);
@@ -214,7 +218,8 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
   const loadFile = useCallback((file: File) => {
     setErrorMsg("");
     setOriginalSize(file.size);
-    setPreviewUrl(URL.createObjectURL(file));
+    setPreviewUrl(URL.createObjectURL(file)); // solo para la preview visual en el navegador
+    setVideoFile(file); // 👈 esto es lo que se sube de verdad
     setStage("ready");
   }, []);
 
@@ -240,58 +245,59 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setStage("idle");
     setPreviewUrl(null);
+    setVideoFile(null);
     setOriginalSize(0);
-    setDecisiones([]);
+    setVideoEditado(null);
+    setErrorApi(null);
   };
 
   const handleSubmit = async () => {
-  setShowLoading(true);
-
-  const promptCompleto = `Propósito del video: ${purpose}. Instrucciones de edición: ${styleNotes}`;
-
-  try {
-    const response = await fetch("/api/editar", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        promptUsuario: promptCompleto,
-        videoUrl: previewUrl,
-      }),
-    });
-
-    const data = await response.json();
-
-    if (data.ok) {
-      console.log("🛠️ Decisiones tomadas por Gemini:", data.decisiones);
-      setDecisiones(data.decisiones);
-    } else {
-      console.error("Error devuelto por la API:", data.error);
+    if (!videoFile) {
+      console.error("No hay archivo de video para subir");
+      setErrorApi("No se encontró el archivo de video");
+      return;
     }
-  } catch (error) {
-    console.error("Error de red al consultar /api/editar:", error);
-  } finally {
-    setShowLoading(false);
-    setShowResultado(true);
-  }
-};
+
+    setShowLoading(true);
+    setErrorApi(null);
+
+    const promptCompleto = `Propósito del video: ${purpose}. Instrucciones de edición: ${styleNotes}`;
+
+    try {
+      // 1. Subir a Supabase Storage para obtener una URL pública real
+      const videoUrlPublica = await subirVideoAStorage(videoFile);
+
+      // 2. Mandar esa URL (no el blob local) a la API
+      const response = await fetch("/api/editar", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          promptUsuario: promptCompleto,
+          videoUrl: videoUrlPublica,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.ok) {
+        console.log("✅ Video editado recibido");
+        setVideoEditado(data.videoEditado);
+      } else {
+        console.error("Error devuelto por la API:", data.error);
+        setErrorApi(data.error || "Error al procesar el video");
+      }
+    } catch (error) {
+      console.error("Error de red al consultar /api/editar:", error);
+      setErrorApi("Error de red al procesar el video");
+    } finally {
+      setShowLoading(false);
+      setShowResultado(true);
+    }
+  };
 
   if (showLoading) {
-  return (
-    <div className="animate-[screen-fade-in_600ms_ease-out]">
-      <style>{`
-        @keyframes screen-fade-in {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-      `}</style>
-      <CargaScreen />
-    </div>
-  );
-}
-
-  if (showResultado && previewUrl) {
     return (
       <div className="animate-[screen-fade-in_600ms_ease-out]">
         <style>{`
@@ -300,7 +306,37 @@ export default function Pantalla2({ user, onLogin }: Pantalla2Props) {
             to { opacity: 1; }
           }
         `}</style>
-        <Resultado videoUrl={previewUrl} decisiones={decisiones} />
+        <CargaScreen />
+      </div>
+    );
+  }
+
+  if (showResultado) {
+    // Si la API falló, no tenemos video editado — mostramos el error en vez de romper Resultado
+    if (errorApi || !videoEditado) {
+      return (
+        <div className="w-full h-screen flex flex-col items-center justify-center bg-[#050510] text-white gap-4 px-6 text-center">
+          <span className="text-red-400 font-semibold">No se pudo editar el video</span>
+          <span className="text-zinc-400 text-sm max-w-md">{errorApi || "Ocurrió un error inesperado"}</span>
+          <button
+            onClick={resetUpload}
+            className="mt-2 bg-white/10 hover:bg-white/15 border border-white/10 text-xs px-4 py-2 rounded-lg transition-colors cursor-pointer"
+          >
+            Volver a intentar
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="animate-[screen-fade-in_600ms_ease-out]">
+        <style>{`
+          @keyframes screen-fade-in {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+        `}</style>
+        <Resultado videoUrl={videoEditado} decisiones={[]} />
       </div>
     );
   }

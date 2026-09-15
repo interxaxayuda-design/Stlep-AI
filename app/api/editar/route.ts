@@ -7,7 +7,7 @@ import { writeFile, mkdtemp, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-export const runtime = "nodejs"; // ffmpeg necesita Node, no Edge
+export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   try {
@@ -21,24 +21,25 @@ export async function POST(req: Request) {
     }
 
     const ai = getGeminiClient();
-
-    // 1. Descargar el video (lo necesitamos tanto para subirlo a Gemini como para ffmpeg después)
     const workDir = await mkdtemp(path.join(tmpdir(), "stlep-"));
     const inputPath = path.join(workDir, "input.mp4");
 
+    console.log("1. Descargando video de Supabase...");
     const videoResponse = await fetch(videoUrl);
     if (!videoResponse.ok) {
       throw new Error(`No se pudo descargar el video: ${videoResponse.status}`);
     }
     await writeFile(inputPath, Buffer.from(await videoResponse.arrayBuffer()));
+    console.log("✅ Video descargado en", inputPath);
 
-    // 2. Subir el video a la Files API de Gemini — esto es lo que le permite "mirarlo"
+    console.log("2. Subiendo video a Gemini Files API...");
     let file = await ai.files.upload({
       file: inputPath,
       config: { mimeType: "video/mp4" },
     });
+    console.log("✅ Upload iniciado, estado:", file.state);
 
-    // 3. Los videos se procesan async del lado de Google — esperamos hasta que esté listo
+    console.log("3. Esperando procesamiento de Gemini...");
     while (file.state === "PROCESSING") {
       await new Promise((r) => setTimeout(r, 2000));
       file = await ai.files.get({ name: file.name! });
@@ -46,10 +47,10 @@ export async function POST(req: Request) {
     if (file.state !== "ACTIVE") {
       throw new Error(`Gemini no pudo procesar el video (estado: ${file.state})`);
     }
+    console.log("✅ Video procesado, estado final:", file.state);
 
-    // 4. Gemini mira el video + lee el prompt → devuelve un EditPlan estructurado
+    console.log("4. Llamando a generateContent...");
     const promptCompleto = `Instrucción de edición del usuario: ${promptUsuario}`;
-
     const response = await ai.models.generateContent({
       model: MODEL,
       contents: createUserContent([
@@ -62,18 +63,22 @@ export async function POST(req: Request) {
         responseSchema: EDIT_PLAN_GEMINI_SCHEMA,
       },
     });
+    console.log("✅ Respuesta recibida de Gemini");
 
     const raw = JSON.parse(response.text!);
-    const plan = EditPlan.parse(raw); // zod revalida — nunca confiar ciegamente en el LLM
+    const plan = EditPlan.parse(raw);
+    console.log("✅ EditPlan validado:", JSON.stringify(plan).slice(0, 200));
 
-    // 5. Compilar el plan en filtros ffmpeg y renderizar el video editado
+    console.log("5. Renderizando con ffmpeg...");
     const outputPath = await compilarYRenderizar(inputPath, plan, workDir);
     const outputBuffer = await readFile(outputPath);
     const videoEditado = `data:video/mp4;base64,${outputBuffer.toString("base64")}`;
+    console.log("✅ Render completo");
 
     return NextResponse.json({ ok: true, videoEditado });
   } catch (error: any) {
     console.error("❌ Error en la API Route /api/editar:", error);
+    console.error("Causa:", error?.cause);
     return NextResponse.json({ ok: false, error: error?.message || "Error interno" }, { status: 500 });
   }
 }
